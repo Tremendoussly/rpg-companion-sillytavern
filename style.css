@@ -11680,31 +11680,33 @@ body:has(.rpg-panel[data-theme="light"]) .rpg-strip-widget {
 
 
 .rpg-inline-thought {
-    margin-top: 10px;
-    border-left: 3px solid var(--SmartThemeQuoteColor, rgba(233, 69, 96, 0.85));
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--SmartThemeBlurTintColor, rgba(80, 20, 30, 0.7)) 70%, transparent);
-    overflow: hidden;
+    margin: 6px 0;
+    border-left: 3px solid var(--rpg-highlight, #e94560);
+    border-radius: 4px;
+    background: rgba(233, 69, 96, 0.06);
+    font-size: 0.92em;
+    transition: background 0.2s ease;
 }
 
 .rpg-inline-thought[open] {
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--SmartThemeQuoteColor, rgba(233, 69, 96, 0.6)) 45%, transparent);
+    background: rgba(233, 69, 96, 0.1);
 }
 
 .rpg-inline-thought-summary {
+    cursor: pointer;
+    padding: 4px 8px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
-    cursor: pointer;
+    gap: 6px;
+    user-select: none;
     list-style: none;
-    font-size: 0.92em;
-    color: var(--SmartThemeBodyColor);
-    background: color-mix(in srgb, var(--SmartThemeBlurTintColor, rgba(80, 20, 30, 0.55)) 85%, transparent);
+    color: var(--rpg-text, #ccc);
+    opacity: 0.85;
+    transition: opacity 0.15s ease;
 }
 
 .rpg-inline-thought-summary:hover {
-    filter: brightness(1.05);
+    opacity: 1;
 }
 
 .rpg-inline-thought-summary::-webkit-details-marker {
@@ -11712,18 +11714,24 @@ body:has(.rpg-panel[data-theme="light"]) .rpg-strip-widget {
 }
 
 .rpg-inline-thought-icon {
-    opacity: 0.9;
-    flex: 0 0 auto;
+    font-size: 0.85em;
+    transition: transform 0.2s ease;
+}
+
+.rpg-inline-thought[open] .rpg-inline-thought-icon {
+    transform: rotate(15deg);
 }
 
 .rpg-inline-thought-name {
-    font-weight: 600;
+    font-weight: 500;
+    font-size: 0.88em;
 }
 
 .rpg-inline-thought-content {
-    padding: 10px 12px 12px;
-    color: var(--SmartThemeEmColor, var(--SmartThemeBodyColor));
-    white-space: pre-wrap;
-    line-height: 1.45;
+    padding: 6px 10px 8px 10px;
+    color: var(--rpg-text, #ddd);
     font-style: italic;
+    line-height: 1.45;
+    opacity: 0.9;
+    border-top: 1px solid rgba(233, 69, 96, 0.15);
 }

@@ -1580,41 +1580,35 @@ function parseChatThoughtsArray(thoughtsSourceData) {
     return thoughtsArray;
 }
 
-function escapeInlineThoughtHtml(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
 function insertInlineThoughts($message, thoughtsArray) {
     const $mesText = $message.find('.mes_text');
     if (!$mesText.length) {
         return;
     }
 
-    const fragment = document.createDocumentFragment();
-
+    const thoughtsMap = {};
     for (const thoughtData of thoughtsArray) {
-        const details = document.createElement('details');
-        details.className = 'rpg-inline-thought';
-        details.dataset.character = (thoughtData.name || '').toLowerCase();
-
-        const summary = document.createElement('summary');
-        summary.className = 'rpg-inline-thought-summary';
-        summary.innerHTML = `<span class="rpg-inline-thought-icon">💭</span><span class="rpg-inline-thought-name">${escapeInlineThoughtHtml(thoughtData.emoji)} ${escapeInlineThoughtHtml(thoughtData.name)}'s thoughts</span>`;
-
-        const content = document.createElement('div');
-        content.className = 'rpg-inline-thought-content';
-        content.textContent = thoughtData.thought || '';
-
-        details.append(summary, content);
-        fragment.append(details);
+        thoughtsMap[(thoughtData.name || '').toLowerCase()] = thoughtData;
     }
 
-    $mesText[0].append(fragment);
+    for (const [, thoughtData] of Object.entries(thoughtsMap)) {
+        const $dropdown = createInlineThoughtDropdown(thoughtData);
+        $mesText.append($dropdown);
+    }
+}
+
+function createInlineThoughtDropdown(thoughtData) {
+    return $(`
+        <details class="rpg-inline-thought" data-character="${(thoughtData.name || '').toLowerCase()}">
+            <summary class="rpg-inline-thought-summary">
+                <span class="rpg-inline-thought-icon">💭</span>
+                <span class="rpg-inline-thought-name">${thoughtData.emoji || '👤'} ${(thoughtData.name || '')}'s thoughts</span>
+            </summary>
+            <div class="rpg-inline-thought-content">
+                ${thoughtData.thought || ''}
+            </div>
+        </details>
+    `);
 }
 
 // ===== GLOBAL DRAGGING SETUP FOR THOUGHT ICON (MOBILE ONLY) =====
