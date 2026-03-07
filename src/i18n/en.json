@@ -43,7 +43,7 @@
     "template.settingsModal.display.showLockIcons": "Show Locking/Unlocking Trackers",
     "template.settingsModal.display.showLockIconsNote": "Display lock/unlock icons on tracker items to prevent AI from modifying them.",
     "template.settingsModal.display.showThoughtsInChat": "Show Thoughts",
-    "template.settingsModal.display.showThoughtsInChatNote": "Display character thoughts as overlay bubbles next to their messages.",
+    "template.settingsModal.display.showThoughtsInChatNote": "Display character thoughts next to the latest character message or below its text.",
     "template.settingsModal.display.alwaysShowThoughtBubble": "Always Show Thought Bubble",
     "template.settingsModal.display.alwaysShowThoughtBubbleNote": "Auto-expand thought bubble without clicking the icon first",
     "template.settingsModal.display.enableAnimations": "Enable Animations",

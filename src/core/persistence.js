@@ -134,6 +134,15 @@ export function loadSettings() {
                 settingsChanged = true;
             }
 
+            // Migration to version 6: Add thoughts in chat style setting
+            if (currentVersion < 6) {
+                if (!extensionSettings.thoughtsInChatStyle) {
+                    extensionSettings.thoughtsInChatStyle = 'corner';
+                }
+                extensionSettings.settingsVersion = 6;
+                settingsChanged = true;
+            }
+
             // Save migrated settings
             if (settingsChanged) {
                 saveSettings();

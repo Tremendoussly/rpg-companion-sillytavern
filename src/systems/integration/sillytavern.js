@@ -340,8 +340,20 @@ export function onCharacterChanged() {
     updateFabWidgets();
     updateStripWidgets();
 
-    // Update chat thought overlays
-    updateChatThoughts();
+    // SillyTavern can finish rebuilding the chat DOM after CHAT_CHANGED fires.
+    // Poll briefly like Doom does so inline thoughts are restored on first load,
+    // not only after a swipe or other later re-render.
+    let attempts = 0;
+    const maxAttempts = 15;
+    const tryRenderChatThoughts = () => {
+        attempts++;
+        if ($('#chat .mes').length > 0) {
+            updateChatThoughts();
+        } else if (attempts < maxAttempts) {
+            setTimeout(tryRenderChatThoughts, 200);
+        }
+    };
+    setTimeout(tryRenderChatThoughts, 200);
 
     // Update checkpoint indicators for the loaded chat
     updateAllCheckpointIndicators();

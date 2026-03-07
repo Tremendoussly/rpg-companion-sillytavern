@@ -367,6 +367,12 @@ async function initUI() {
         updateChatThoughts();
     });
 
+    $('#rpg-toggle-inline-thoughts').on('change', function() {
+        extensionSettings.thoughtsInChatStyle = $(this).prop('checked') ? 'inline' : 'corner';
+        saveSettings();
+        updateChatThoughts();
+    });
+
     $('#rpg-toggle-html-prompt').on('change', function() {
         extensionSettings.enableHtmlPrompt = $(this).prop('checked');
         // console.log('[RPG Companion] Toggle enableHtmlPrompt changed to:', extensionSettings.enableHtmlPrompt);
@@ -1047,6 +1053,7 @@ async function initUI() {
     $('#rpg-toggle-quests').prop('checked', extensionSettings.showQuests);
     $('#rpg-toggle-lock-icons').prop('checked', extensionSettings.showLockIcons ?? true);
     $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
+    $('#rpg-toggle-inline-thoughts').prop('checked', (extensionSettings.thoughtsInChatStyle || 'corner') === 'inline');
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
     $('#rpg-toggle-dialogue-coloring').prop('checked', extensionSettings.enableDialogueColoring);
     $('#rpg-toggle-deception').prop('checked', extensionSettings.enableDeceptionSystem ?? false);
