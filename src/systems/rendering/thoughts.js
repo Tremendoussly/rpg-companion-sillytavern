@@ -1561,6 +1561,15 @@ function parseThoughtsArray() {
     return thoughtsArray;
 }
 
+function escapeInlineThoughtHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function insertInlineThoughts($message, thoughtsArray) {
     const $mesText = $message.find('.mes_text');
     if (!$mesText.length) {
@@ -1579,14 +1588,25 @@ function insertInlineThoughts($message, thoughtsArray) {
 }
 
 function createInlineThoughtDropdown(thoughtData) {
+    const characterName = thoughtData.name || '';
+    const emoji = thoughtData.emoji || '👤';
+    const thoughtText = thoughtData.thought || '';
+
     return $(`
-        <details class="rpg-inline-thought" data-character="${(thoughtData.name || '').toLowerCase()}">
+        <details class="rpg-inline-thought" data-character="${escapeInlineThoughtHtml(characterName.toLowerCase())}">
             <summary class="rpg-inline-thought-summary">
                 <span class="rpg-inline-thought-icon">💭</span>
-                <span class="rpg-inline-thought-name">${thoughtData.emoji || '👤'} ${(thoughtData.name || '')}'s thoughts</span>
+                <span class="rpg-inline-thought-name">${escapeInlineThoughtHtml(characterName)}'s thoughts</span>
             </summary>
             <div class="rpg-inline-thought-content">
-                ${thoughtData.thought || ''}
+                <div class="rpg-thought-item">
+                    <div class="rpg-thought-emoji-box">
+                        ${escapeInlineThoughtHtml(emoji)}
+                    </div>
+                    <div class="rpg-thought-content">
+                        ${escapeInlineThoughtHtml(thoughtText)}
+                    </div>
+                </div>
             </div>
         </details>
     `);
