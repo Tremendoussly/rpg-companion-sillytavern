@@ -30,6 +30,8 @@
     "template.settingsModal.display.showUserStats": "顯示 user 屬性",
     "template.settingsModal.display.showInfoBox": "顯示資訊框",
     "template.settingsModal.display.showPresentCharacters": "顯示在場角色",
+    "template.settingsModal.display.showBelowChatPresentCharacters": "顯示聊天下方的在場角色",
+    "template.settingsModal.display.showBelowChatPresentCharactersNote": "在聊天下方顯示精簡的在場角色面板。",
     "template.settingsModal.display.showInventory": "顯示物品欄",
     "template.settingsModal.display.showLockIcons": "顯示鎖定/解鎖追蹤器",
     "template.settingsModal.display.showLockIconsNote": "在追蹤器項目上顯示鎖定/解鎖圖示，以防止 AI 修改它們。",

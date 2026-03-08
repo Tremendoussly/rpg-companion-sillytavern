@@ -34,6 +34,8 @@
     "template.settingsModal.display.showInfoBoxNote": "Отображение локации, времени, погоды и недавних событий.",
     "template.settingsModal.display.showPresentCharacters": "Показывать персонажей",
     "template.settingsModal.display.showPresentCharactersNote": "Показывать портреты персонажей с их текущимы мыслями и статусом.",
+    "template.settingsModal.display.showBelowChatPresentCharacters": "Показывать персонажей под чатом",
+    "template.settingsModal.display.showBelowChatPresentCharactersNote": "Показывать компактную панель персонажей под чатом.",
     "template.settingsModal.display.narratorMode": "Режим расказчика",
     "template.settingsModal.display.narratorModeNote": "Использовать карточку персонажа в качестве расказчика. Персонажи берутся из контекста вместо фиксированных отсылок.",
     "template.settingsModal.display.showInventory": "Показывать инвентарь",

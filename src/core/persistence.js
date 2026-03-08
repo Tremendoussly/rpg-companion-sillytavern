@@ -376,6 +376,11 @@ export function loadSettings() {
                 settingsChanged = true;
             }
 
+            if (extensionSettings.showAlternatePresentCharactersPanel === undefined) {
+                extensionSettings.showAlternatePresentCharactersPanel = false;
+                settingsChanged = true;
+            }
+
             // Save migrated settings
             if (settingsChanged) {
                 saveSettings();
