@@ -22,7 +22,7 @@ import {
     updateCommittedTrackerData,
     $musicPlayerContainer
 } from '../../core/state.js';
-import { saveChatData, loadChatData, autoSwitchPresetForEntity } from '../../core/persistence.js';
+import { saveChatData, loadChatData, autoSwitchPresetForEntity, getMessageSwipeTrackerData, restoreLatestTrackerStateFromChat } from '../../core/persistence.js';
 import { i18n } from '../../core/i18n.js';
 
 // Generation & Parsing
@@ -90,19 +90,7 @@ export function commitTrackerData() {
 }
 
 function getSwipeTrackerData(message) {
-    if (!message || message.is_user) {
-        return null;
-    }
-
-    const swipeId = message.swipe_id || 0;
-    let swipeData = message.extra?.rpg_companion_swipes?.[swipeId];
-
-    if (!swipeData && message.swipe_info?.[swipeId]?.extra?.rpg_companion_swipes) {
-        swipeData = message.swipe_info[swipeId].extra.rpg_companion_swipes[swipeId]
-            || message.swipe_info[swipeId].extra.rpg_companion_swipes;
-    }
-
-    return swipeData || null;
+    return getMessageSwipeTrackerData(message);
 }
 
 function hasAssistantMessageBody() {
@@ -125,6 +113,35 @@ function hasAnyTrackerStateInChat() {
     for (let i = chatMessages.length - 1; i >= 0; i--) {
         const swipeData = getSwipeTrackerData(chatMessages[i]);
         if (swipeData?.userStats || swipeData?.infoBox || swipeData?.characterThoughts) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function hasAssistantMessagesInChat() {
+    const chatMessages = getContext()?.chat || [];
+    return chatMessages.some(message => message && !message.is_user && !message.is_system);
+}
+
+function hasPotentialTrackerSourceInChat() {
+    const chatMessages = getContext()?.chat || [];
+
+    for (const message of chatMessages) {
+        if (!message || message.is_user || message.is_system) {
+            continue;
+        }
+
+        if (message.extra?.rpg_companion_swipes) {
+            return true;
+        }
+
+        if (Array.isArray(message.swipe_info) && message.swipe_info.some(info => info?.extra?.rpg_companion_swipes)) {
+            return true;
+        }
+
+        if (Array.isArray(message.swipes) && message.swipes.length > 1) {
             return true;
         }
     }
@@ -159,6 +176,7 @@ export function scheduleChatStateRehydration() {
     const runId = chatStateRehydrateRunId;
     let attempts = 0;
     const maxAttempts = 15;
+    const eagerRetryAttempts = 4;
 
     const tryRestoreState = () => {
         if (runId !== chatStateRehydrateRunId) {
@@ -168,30 +186,50 @@ export function scheduleChatStateRehydration() {
         attempts++;
 
         loadChatData();
+        restoreLatestTrackerStateFromChat(getContext()?.chat);
         maybeRehydrateUserStatsFromDisplayData();
         rerenderRpgState();
 
-        const hasTrackerState = !!(
+        const hasRestoredTrackerState = !!(
             lastGeneratedData.userStats
             || lastGeneratedData.infoBox
             || lastGeneratedData.characterThoughts
             || committedTrackerData.userStats
             || committedTrackerData.infoBox
             || committedTrackerData.characterThoughts
-            || hasAnyTrackerStateInChat()
         );
+        const hasStoredTrackerState = !!chat_metadata?.rpg_companion || hasAnyTrackerStateInChat();
+        const hasAssistantMessages = hasAssistantMessagesInChat();
+        const hasPotentialTrackerSource = hasPotentialTrackerSourceInChat();
         const chatBodyReady = hasAssistantMessageBody();
 
         if (chatBodyReady) {
             updateChatThoughts();
         }
 
-        if ((!hasTrackerState || !chatBodyReady) && attempts < maxAttempts) {
+        const shouldRetryForRestore = !hasRestoredTrackerState && (
+            hasStoredTrackerState
+            || (hasAssistantMessages && attempts < eagerRetryAttempts)
+            || (hasPotentialTrackerSource && attempts < maxAttempts)
+        );
+
+        const shouldRetryForDom = !chatBodyReady && hasAssistantMessages;
+
+        if ((shouldRetryForRestore || shouldRetryForDom) && attempts < maxAttempts) {
             setTimeout(tryRestoreState, 200);
         }
     };
 
     setTimeout(tryRestoreState, 200);
+}
+
+export function onChatLoaded() {
+    loadChatData();
+    restoreLatestTrackerStateFromChat(getContext()?.chat);
+    maybeRehydrateUserStatsFromDisplayData();
+    rerenderRpgState();
+    scheduleChatStateRehydration();
+    updateAllCheckpointIndicators();
 }
 
 /**

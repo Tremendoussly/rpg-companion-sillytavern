@@ -21,6 +21,126 @@ import { migrateToV3JSON } from '../utils/jsonMigration.js';
 
 const extensionName = 'third-party/rpg-companion-sillytavern';
 
+function hasTrackerPayload(payload) {
+    return !!(payload && typeof payload === 'object' && (
+        payload.userStats
+        || payload.infoBox
+        || payload.characterThoughts
+    ));
+}
+
+function getTrackerPayloadFromSwipeStore(store, preferredSwipeId = 0) {
+    if (!store) {
+        return null;
+    }
+
+    if (hasTrackerPayload(store)) {
+        return store;
+    }
+
+    const preferredKey = String(preferredSwipeId);
+    const preferredPayload = store[preferredKey] ?? store[preferredSwipeId];
+    if (hasTrackerPayload(preferredPayload)) {
+        return preferredPayload;
+    }
+
+    const numericKeys = Object.keys(store)
+        .filter(key => /^\d+$/.test(key))
+        .sort((a, b) => Number(b) - Number(a));
+
+    for (const key of numericKeys) {
+        const payload = store[key];
+        if (hasTrackerPayload(payload)) {
+            return payload;
+        }
+    }
+
+    for (const payload of Object.values(store)) {
+        if (hasTrackerPayload(payload)) {
+            return payload;
+        }
+    }
+
+    return null;
+}
+
+export function getMessageSwipeTrackerData(message) {
+    if (!message || message.is_user) {
+        return null;
+    }
+
+    const swipeId = Number(message.swipe_id ?? 0);
+
+    const preferredSources = [
+        message.extra?.rpg_companion_swipes,
+        message.swipe_info?.[swipeId]?.extra?.rpg_companion_swipes
+    ];
+
+    for (const source of preferredSources) {
+        const payload = getTrackerPayloadFromSwipeStore(source, swipeId);
+        if (payload) {
+            return payload;
+        }
+    }
+
+    if (Array.isArray(message.swipe_info)) {
+        for (let i = message.swipe_info.length - 1; i >= 0; i--) {
+            const payload = getTrackerPayloadFromSwipeStore(message.swipe_info[i]?.extra?.rpg_companion_swipes, swipeId);
+            if (payload) {
+                return payload;
+            }
+        }
+    }
+
+    return null;
+}
+
+export function getLatestTrackerDataFromChat(chatMessages) {
+    if (!Array.isArray(chatMessages)) {
+        return null;
+    }
+
+    for (let i = chatMessages.length - 1; i >= 0; i--) {
+        const message = chatMessages[i];
+        if (message?.is_user) continue;
+
+        const swipeData = getMessageSwipeTrackerData(message);
+        if (!swipeData) continue;
+
+        return {
+            userStats: swipeData.userStats || null,
+            infoBox: swipeData.infoBox || null,
+            characterThoughts: typeof swipeData.characterThoughts === 'object'
+                ? JSON.stringify(swipeData.characterThoughts, null, 2)
+                : (swipeData.characterThoughts || null)
+        };
+    }
+
+    return null;
+}
+
+export function restoreLatestTrackerStateFromChat(chatMessages) {
+    const latestData = getLatestTrackerDataFromChat(chatMessages);
+    if (!latestData) {
+        return false;
+    }
+
+    setLastGeneratedData({
+        userStats: latestData.userStats || null,
+        infoBox: latestData.infoBox || null,
+        characterThoughts: latestData.characterThoughts || null,
+        html: lastGeneratedData.html || null
+    });
+
+    setCommittedTrackerData({
+        userStats: latestData.userStats || committedTrackerData.userStats || null,
+        infoBox: latestData.infoBox || committedTrackerData.infoBox || null,
+        characterThoughts: latestData.characterThoughts || committedTrackerData.characterThoughts || null
+    });
+
+    return true;
+}
+
 /**
  * Validates extension settings structure
  * @param {Object} settings - Settings object to validate
@@ -273,8 +393,10 @@ export function updateMessageSwipeData() {
  * Automatically migrates v1 inventory to v2 format if needed.
  */
 export function loadChatData() {
-    if (!chat_metadata || !chat_metadata.rpg_companion) {
-        // Reset to defaults if no data exists
+    const savedData = chat_metadata?.rpg_companion;
+
+    if (!savedData) {
+        // Reset to defaults if no metadata exists, then try to rebuild from message swipe data below.
         updateExtensionSettings({
             userStats: {
                 health: 100,
@@ -308,23 +430,20 @@ export function loadChatData() {
             infoBox: null,
             characterThoughts: null
         });
-        return;
     }
 
-    const savedData = chat_metadata.rpg_companion;
-
     // Restore stats
-    if (savedData.userStats) {
+    if (savedData?.userStats) {
         extensionSettings.userStats = { ...savedData.userStats };
     }
 
     // Restore classic stats
-    if (savedData.classicStats) {
+    if (savedData?.classicStats) {
         extensionSettings.classicStats = { ...savedData.classicStats };
     }
 
     // Restore quests
-    if (savedData.quests) {
+    if (savedData?.quests) {
         extensionSettings.quests = { ...savedData.quests };
     } else {
         // Initialize with defaults if not present
@@ -335,7 +454,7 @@ export function loadChatData() {
     }
 
     // Restore committed tracker data first
-    if (savedData.committedTrackerData) {
+    if (savedData?.committedTrackerData) {
         // console.log('[RPG Companion] 📥 loadChatData restoring committedTrackerData:', {
         //     userStats: savedData.committedTrackerData.userStats ? `${savedData.committedTrackerData.userStats.substring(0, 50)}...` : 'null',
         //     infoBox: savedData.committedTrackerData.infoBox ? 'exists' : 'null',
@@ -352,7 +471,7 @@ export function loadChatData() {
 
     // Restore last generated data (for display)
     // Always prefer lastGeneratedData as it contains the most recent generation (including swipes)
-    if (savedData.lastGeneratedData) {
+    if (savedData?.lastGeneratedData) {
         // console.log('[RPG Companion] 📥 loadChatData restoring lastGeneratedData');
         setLastGeneratedData({ ...savedData.lastGeneratedData });
     } else {
@@ -380,50 +499,7 @@ export function loadChatData() {
     try {
         const chatContext = getContext();
         const chatMessages = chatContext?.chat;
-
-        if (Array.isArray(chatMessages)) {
-            for (let i = chatMessages.length - 1; i >= 0; i--) {
-                const message = chatMessages[i];
-                if (message?.is_user) continue;
-
-                const swipeId = message.swipe_id || 0;
-                let swipeData = message.extra?.rpg_companion_swipes?.[swipeId];
-
-                if (!swipeData && message.swipe_info?.[swipeId]?.extra?.rpg_companion_swipes) {
-                    swipeData = message.swipe_info[swipeId].extra.rpg_companion_swipes[swipeId]
-                        || message.swipe_info[swipeId].extra.rpg_companion_swipes;
-                }
-
-                if (!swipeData) continue;
-
-                const latestData = {};
-
-                if (swipeData.userStats) latestData.userStats = swipeData.userStats;
-                if (swipeData.infoBox) latestData.infoBox = swipeData.infoBox;
-                if (swipeData.characterThoughts) {
-                    latestData.characterThoughts = typeof swipeData.characterThoughts === 'object'
-                        ? JSON.stringify(swipeData.characterThoughts, null, 2)
-                        : swipeData.characterThoughts;
-                }
-
-                if (latestData.userStats || latestData.infoBox || latestData.characterThoughts) {
-                    setLastGeneratedData({
-                        userStats: latestData.userStats || lastGeneratedData.userStats,
-                        infoBox: latestData.infoBox || lastGeneratedData.infoBox,
-                        characterThoughts: latestData.characterThoughts || lastGeneratedData.characterThoughts,
-                        html: lastGeneratedData.html || null
-                    });
-
-                    setCommittedTrackerData({
-                        userStats: latestData.userStats || committedTrackerData.userStats,
-                        infoBox: latestData.infoBox || committedTrackerData.infoBox,
-                        characterThoughts: latestData.characterThoughts || committedTrackerData.characterThoughts
-                    });
-                }
-
-                break;
-            }
-        }
+        restoreLatestTrackerStateFromChat(chatMessages);
     } catch (e) {
         console.warn('[RPG Companion] Per-message data sync skipped:', e.message);
     }
