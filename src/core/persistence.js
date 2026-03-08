@@ -317,16 +317,8 @@ export function loadSettings() {
             updateExtensionSettings(savedSettings);
 
             // Perform settings migrations based on version
-            let currentVersion = extensionSettings.settingsVersion || 1;
+            const currentVersion = extensionSettings.settingsVersion || 1;
             let settingsChanged = false;
-
-            // Collapse unreleased local schema versions back to the current
-            // public version so future migrations can stay linear.
-            if (currentVersion > 4) {
-                extensionSettings.settingsVersion = 4;
-                currentVersion = 4;
-                settingsChanged = true;
-            }
 
             // Migration to version 2: Enable dynamic weather for existing users
             if (currentVersion < 2) {
