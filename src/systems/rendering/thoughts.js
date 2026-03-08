@@ -1441,28 +1441,25 @@ function renderThoughtsSidebarOnly() {
  * Updates or removes thought overlays in the chat.
  * Creates floating thought bubbles positioned near character avatars.
  */
-let chatThoughtsRenderSequence = 0;
 
-export function updateChatThoughts(options = {}) {
-    const { deferPass = true } = options;
-    const renderSequence = ++chatThoughtsRenderSequence;
-
-    // Remove existing thought UI from previous renders
+export function updateChatThoughts() {
+    // Remove old floating thought panel/icon (legacy cleanup)
     $('#rpg-thought-panel').remove();
     $('#rpg-thought-icon').remove();
-    $('.rpg-inline-thought').remove();
     $('#chat').off('scroll.thoughtPanel');
     $(window).off('resize.thoughtPanel');
     $(document).off('click.thoughtPanel');
 
-    const thoughtsSourceData = lastGeneratedData.characterThoughts || committedTrackerData.characterThoughts;
+    // Remove any existing inline thought dropdowns from previous renders
+    $('.rpg-inline-thought').remove();
 
-    if (!extensionSettings.enabled || !extensionSettings.showThoughtsInChat || !thoughtsSourceData) {
+    // Match Doom's behavior: chat overlays follow the currently displayed tracker payload,
+    // not the committed generation baseline.
+    if (!extensionSettings.enabled || !extensionSettings.showThoughtsInChat || !lastGeneratedData.characterThoughts) {
         return;
     }
 
-    const thoughtsArray = parseChatThoughtsArray(thoughtsSourceData);
-    debugLog('[RPG Thoughts] Parsed thoughts:', thoughtsArray);
+    const thoughtsArray = parseThoughtsArray();
 
     if (thoughtsArray.length === 0) {
         return;
@@ -1480,13 +1477,6 @@ export function updateChatThoughts(options = {}) {
     }
 
     if (!$targetMessage || !$targetMessage.length) {
-        if (deferPass) {
-            setTimeout(() => {
-                if (renderSequence === chatThoughtsRenderSequence) {
-                    updateChatThoughts({ deferPass: false });
-                }
-            }, 150);
-        }
         return;
     }
 
@@ -1495,26 +1485,17 @@ export function updateChatThoughts(options = {}) {
     } else {
         createThoughtPanel($targetMessage, thoughtsArray);
     }
-
-    // Run one delayed pass after the message DOM settles so thoughts do not get stuck on the previous message.
-    if (deferPass) {
-        setTimeout(() => {
-            if (renderSequence === chatThoughtsRenderSequence) {
-                updateChatThoughts({ deferPass: false });
-            }
-        }, 150);
-    }
 }
 
-function parseChatThoughtsArray(thoughtsSourceData) {
+function parseThoughtsArray() {
     let thoughtsArray = [];
     const thoughtsConfig = extensionSettings.trackerConfig?.presentCharacters?.thoughts;
     const thoughtsLabel = thoughtsConfig?.name || 'Thoughts';
 
     try {
-        const parsed = typeof thoughtsSourceData === 'string'
-            ? JSON.parse(thoughtsSourceData)
-            : thoughtsSourceData;
+        const parsed = typeof lastGeneratedData.characterThoughts === 'string'
+            ? JSON.parse(lastGeneratedData.characterThoughts)
+            : lastGeneratedData.characterThoughts;
 
         const charactersArray = Array.isArray(parsed) ? parsed : (parsed.characters || []);
 
@@ -1532,8 +1513,8 @@ function parseChatThoughtsArray(thoughtsSourceData) {
         debugLog('[RPG Thoughts Bubble] Not JSON format, falling back to text parsing');
     }
 
-    if (thoughtsArray.length === 0 && thoughtsSourceData) {
-        const lines = thoughtsSourceData.split('\n');
+    if (thoughtsArray.length === 0 && lastGeneratedData.characterThoughts) {
+        const lines = lastGeneratedData.characterThoughts.split('\n');
         let currentCharName = null;
         let currentCharEmoji = null;
 

@@ -244,6 +244,11 @@ export async function onMessageReceived(data) {
 
             // console.log('[RPG Companion] Cleaned message, removed tracker code blocks from DOM');
 
+            // Re-insert chat thoughts after SillyTavern finishes rerendering the cleaned message DOM.
+            if (parsedData.characterThoughts) {
+                setTimeout(() => updateChatThoughts(), 100);
+            }
+
             // Save to chat metadata
             saveChatData();
         }
@@ -347,7 +352,20 @@ export function onCharacterChanged() {
     const maxAttempts = 15;
     const tryRenderChatThoughts = () => {
         attempts++;
-        if ($('#chat .mes').length > 0) {
+
+        const $messages = $('#chat .mes');
+        let hasAssistantMessageBody = false;
+
+        for (let i = $messages.length - 1; i >= 0; i--) {
+            const $message = $messages.eq(i);
+            if ($message.attr('is_user') === 'true') continue;
+            if ($message.find('.mes_text').length > 0) {
+                hasAssistantMessageBody = true;
+                break;
+            }
+        }
+
+        if (hasAssistantMessageBody) {
             updateChatThoughts();
         } else if (attempts < maxAttempts) {
             setTimeout(tryRenderChatThoughts, 200);
