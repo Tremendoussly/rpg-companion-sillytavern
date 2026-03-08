@@ -1442,6 +1442,10 @@ function renderThoughtsSidebarOnly() {
  * Creates floating thought bubbles positioned near character avatars.
  */
 
+let inlineThoughtsObserver = null;
+let inlineThoughtsRefreshTimeout = null;
+let isRefreshingInlineThoughts = false;
+
 export function updateChatThoughts(attempt = 0) {
     const thoughtsStyle = extensionSettings.thoughtsInChatStyle || 'corner';
 
@@ -1455,67 +1459,203 @@ export function updateChatThoughts(attempt = 0) {
     // Remove any existing inline thought dropdowns from previous renders
     $('.rpg-inline-thought').remove();
 
-    // Match Doom's behavior: chat overlays follow the currently displayed tracker payload,
-    // not the committed generation baseline.
-    if (!extensionSettings.enabled || !extensionSettings.showThoughtsInChat || !lastGeneratedData.characterThoughts) {
+    const canRenderThoughts = extensionSettings.enabled
+        && extensionSettings.showThoughtsInChat
+        && !!lastGeneratedData.characterThoughts;
+
+    if (!canRenderThoughts) {
+        teardownInlineThoughtsObserver();
         return;
     }
 
     const thoughtsArray = parseThoughtsArray();
 
     if (thoughtsArray.length === 0) {
+        teardownInlineThoughtsObserver();
         return;
     }
 
-    let $targetMessage = null;
+    const targetInfo = findThoughtTargetMessage();
+    let $targetMessage = targetInfo.$message;
 
-    if (thoughtsStyle === 'inline') {
-        $targetMessage = findLatestAssistantMessageElement();
-
-        // Inline thoughts must attach to the actual newest assistant message,
-        // not whichever older message happens to still be in the DOM during rerenders.
-        if ((!$targetMessage || !$targetMessage.length || !$targetMessage.find('.mes_text').length) && attempt < 10) {
-            setTimeout(() => updateChatThoughts(attempt + 1), 120);
-            return;
-        }
+    if ((!$targetMessage || !$targetMessage.length || !$targetMessage.find('.mes_text').length) && attempt < 10) {
+        setTimeout(() => updateChatThoughts(attempt + 1), 120);
+        return;
     }
 
     if (!$targetMessage || !$targetMessage.length) {
-        const $messages = $('#chat .mes');
-        for (let i = $messages.length - 1; i >= 0; i--) {
-            const $message = $messages.eq(i);
-            if ($message.attr('is_user') !== 'true') {
-                $targetMessage = $message;
-                break;
-            }
-        }
-    }
-
-    if (!$targetMessage || !$targetMessage.length) {
+        teardownInlineThoughtsObserver();
         return;
     }
 
     if (thoughtsStyle === 'inline') {
         insertInlineThoughts($targetMessage, thoughtsArray);
+        ensureInlineThoughtsObserver();
     } else {
+        teardownInlineThoughtsObserver();
         createThoughtPanel($targetMessage, thoughtsArray);
     }
 }
 
-function findLatestAssistantMessageElement() {
+function findThoughtTargetMessage() {
     const context = getContext();
     const chat = context?.chat || [];
+    const currentThoughts = normalizeThoughtPayload(lastGeneratedData.characterThoughts);
+
+    let fallbackIndex = -1;
 
     for (let i = chat.length - 1; i >= 0; i--) {
-        if (chat[i]?.is_user) continue;
+        const message = chat[i];
+        if (message?.is_user) continue;
 
-        const $message = $(`#chat .mes[mesid="${i}"]`);
-        if ($message.length) {
-            return $message;
+        if (fallbackIndex === -1) {
+            fallbackIndex = i;
+        }
+
+        const messageThoughts = getMessageThoughtPayload(message);
+        if (!currentThoughts || !messageThoughts) continue;
+
+        if (messageThoughts === currentThoughts) {
+            const $message = $(`#chat .mes[mesid="${i}"]`);
+            return { index: i, $message };
         }
     }
 
-    return $();
+    if (fallbackIndex !== -1) {
+        return {
+            index: fallbackIndex,
+            $message: $(`#chat .mes[mesid="${fallbackIndex}"]`)
+        };
+    }
+
+    return { index: -1, $message: $() };
+}
+
+function getMessageThoughtPayload(message) {
+    if (!message || message.is_user) {
+        return null;
+    }
+
+    const swipeId = message.swipe_id || 0;
+    let swipeData = message.extra?.rpg_companion_swipes?.[swipeId];
+
+    if (!swipeData && message.swipe_info?.[swipeId]?.extra?.rpg_companion_swipes) {
+        swipeData = message.swipe_info[swipeId].extra.rpg_companion_swipes[swipeId]
+            || message.swipe_info[swipeId].extra.rpg_companion_swipes;
+    }
+
+    return normalizeThoughtPayload(swipeData?.characterThoughts ?? null);
+}
+
+function normalizeThoughtPayload(payload) {
+    if (!payload) {
+        return null;
+    }
+
+    if (typeof payload === 'object') {
+        return stableStringify(payload);
+    }
+
+    if (typeof payload !== 'string') {
+        return String(payload);
+    }
+
+    const trimmed = payload.trim();
+    if (!trimmed) {
+        return null;
+    }
+
+    try {
+        return stableStringify(JSON.parse(trimmed));
+    } catch {
+        return trimmed.replace(/\r\n/g, '\n');
+    }
+}
+
+function stableStringify(value) {
+    if (Array.isArray(value)) {
+        return `[${value.map(item => stableStringify(item)).join(',')}]`;
+    }
+
+    if (value && typeof value === 'object') {
+        return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+    }
+
+    return JSON.stringify(value);
+}
+
+function ensureInlineThoughtsObserver() {
+    if (inlineThoughtsObserver) {
+        return;
+    }
+
+    const chatElement = document.getElementById('chat');
+    if (!chatElement) {
+        return;
+    }
+
+    inlineThoughtsObserver = new MutationObserver((mutations) => {
+        if (isRefreshingInlineThoughts) {
+            return;
+        }
+
+        const shouldRefresh = mutations.some((mutation) => {
+            if (mutation.type !== 'childList') {
+                return false;
+            }
+
+            const touchedThoughtNode = [...mutation.addedNodes, ...mutation.removedNodes].some((node) => {
+                if (!(node instanceof HTMLElement)) {
+                    return false;
+                }
+
+                return node.classList?.contains('mes')
+                    || node.classList?.contains('mes_text')
+                    || node.classList?.contains('rpg-inline-thought')
+                    || node.querySelector?.('.mes, .mes_text, .rpg-inline-thought');
+            });
+
+            return touchedThoughtNode;
+        });
+
+        if (!shouldRefresh) {
+            return;
+        }
+
+        clearTimeout(inlineThoughtsRefreshTimeout);
+        inlineThoughtsRefreshTimeout = setTimeout(() => {
+            if (!extensionSettings.enabled
+                || !extensionSettings.showThoughtsInChat
+                || (extensionSettings.thoughtsInChatStyle || 'corner') !== 'inline') {
+                teardownInlineThoughtsObserver();
+                return;
+            }
+
+            isRefreshingInlineThoughts = true;
+            try {
+                updateChatThoughts();
+            } finally {
+                isRefreshingInlineThoughts = false;
+            }
+        }, 50);
+    });
+
+    inlineThoughtsObserver.observe(chatElement, {
+        childList: true,
+        subtree: true
+    });
+}
+
+function teardownInlineThoughtsObserver() {
+    if (inlineThoughtsRefreshTimeout) {
+        clearTimeout(inlineThoughtsRefreshTimeout);
+        inlineThoughtsRefreshTimeout = null;
+    }
+
+    if (inlineThoughtsObserver) {
+        inlineThoughtsObserver.disconnect();
+        inlineThoughtsObserver = null;
+    }
 }
 
 function parseThoughtsArray() {
