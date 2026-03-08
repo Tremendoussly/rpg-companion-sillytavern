@@ -35,6 +35,8 @@
     "template.settingsModal.display.showInfoBoxNote": "Afficher le lieu, l'heure, la météo et les événements récents.",
     "template.settingsModal.display.showPresentCharacters": "Afficher Personnages Présents",
     "template.settingsModal.display.showPresentCharactersNote": "Afficher les portraits des personnages avec leurs pensées actuelles et leur statut.",
+    "template.settingsModal.display.showBelowChatPresentCharacters": "Afficher les personnages sous le chat",
+    "template.settingsModal.display.showBelowChatPresentCharactersNote": "Afficher un panneau compact des personnages présents sous le chat.",
     "template.settingsModal.display.narratorMode": "Mode Narrateur",
     "template.settingsModal.display.narratorModeNote": "Utiliser la carte de personnage comme narrateur. Déduire les personnages du contexte au lieu d'utiliser des références de personnages fixes.",
     "template.settingsModal.display.showInventory": "Afficher Inventaire",
