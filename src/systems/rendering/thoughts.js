@@ -1442,7 +1442,9 @@ function renderThoughtsSidebarOnly() {
  * Creates floating thought bubbles positioned near character avatars.
  */
 
-export function updateChatThoughts() {
+export function updateChatThoughts(attempt = 0) {
+    const thoughtsStyle = extensionSettings.thoughtsInChatStyle || 'corner';
+
     // Remove old floating thought panel/icon (legacy cleanup)
     $('#rpg-thought-panel').remove();
     $('#rpg-thought-icon').remove();
@@ -1465,14 +1467,27 @@ export function updateChatThoughts() {
         return;
     }
 
-    const $messages = $('#chat .mes');
     let $targetMessage = null;
 
-    for (let i = $messages.length - 1; i >= 0; i--) {
-        const $message = $messages.eq(i);
-        if ($message.attr('is_user') !== 'true') {
-            $targetMessage = $message;
-            break;
+    if (thoughtsStyle === 'inline') {
+        $targetMessage = findLatestAssistantMessageElement();
+
+        // Inline thoughts must attach to the actual newest assistant message,
+        // not whichever older message happens to still be in the DOM during rerenders.
+        if ((!$targetMessage || !$targetMessage.length || !$targetMessage.find('.mes_text').length) && attempt < 10) {
+            setTimeout(() => updateChatThoughts(attempt + 1), 120);
+            return;
+        }
+    }
+
+    if (!$targetMessage || !$targetMessage.length) {
+        const $messages = $('#chat .mes');
+        for (let i = $messages.length - 1; i >= 0; i--) {
+            const $message = $messages.eq(i);
+            if ($message.attr('is_user') !== 'true') {
+                $targetMessage = $message;
+                break;
+            }
         }
     }
 
@@ -1480,11 +1495,27 @@ export function updateChatThoughts() {
         return;
     }
 
-    if ((extensionSettings.thoughtsInChatStyle || 'corner') === 'inline') {
+    if (thoughtsStyle === 'inline') {
         insertInlineThoughts($targetMessage, thoughtsArray);
     } else {
         createThoughtPanel($targetMessage, thoughtsArray);
     }
+}
+
+function findLatestAssistantMessageElement() {
+    const context = getContext();
+    const chat = context?.chat || [];
+
+    for (let i = chat.length - 1; i >= 0; i--) {
+        if (chat[i]?.is_user) continue;
+
+        const $message = $(`#chat .mes[mesid="${i}"]`);
+        if ($message.length) {
+            return $message;
+        }
+    }
+
+    return $();
 }
 
 function parseThoughtsArray() {
