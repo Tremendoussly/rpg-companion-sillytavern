@@ -5082,9 +5082,27 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-alt-present-characters__scroll {
     overflow-x: auto;
     overflow-y: hidden;
-    padding-top: 2px;
+    padding-bottom: 2px;
     scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.24) transparent;
     transform: scaleY(-1);
+}
+
+.rpg-alt-present-characters__scroll::-webkit-scrollbar {
+    height: 6px;
+}
+
+.rpg-alt-present-characters__scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.rpg-alt-present-characters__scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.24);
+    border-radius: 999px;
+}
+
+.rpg-alt-present-characters__scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.34);
 }
 
 .rpg-alt-present-characters__track {
@@ -5093,6 +5111,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     width: max-content;
     min-width: 100%;
     transform: scaleY(-1);
+    padding-top: 8px;
     padding-bottom: 2px;
 }
 
