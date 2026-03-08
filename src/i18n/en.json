@@ -34,6 +34,8 @@
     "template.settingsModal.display.showInfoBoxNote": "Display location, time, weather, and recent events.",
     "template.settingsModal.display.showPresentCharacters": "Show Present Characters",
     "template.settingsModal.display.showPresentCharactersNote": "Display character portraits with their current thoughts and status.",
+    "template.settingsModal.display.showBelowChatPresentCharacters": "Show Below-Chat Present Characters",
+    "template.settingsModal.display.showBelowChatPresentCharactersNote": "Display a compact Present Characters panel below the chat.",
     "template.settingsModal.display.narratorMode": "Narrator Mode",
     "template.settingsModal.display.narratorModeNote": "Use character card as narrator. Infer characters from context instead of using fixed character references.",
     "template.settingsModal.display.showInventory": "Show Inventory",

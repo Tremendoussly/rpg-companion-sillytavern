@@ -18,6 +18,7 @@ export let extensionSettings = {
     showUserStats: true,
     showInfoBox: true,
     showCharacterThoughts: true,
+    showAlternatePresentCharactersPanel: false,
     showInventory: true, // Show inventory section (v2 system)
     showQuests: true, // Show quests section
     showThoughtsInChat: true, // Show thoughts overlay in chat

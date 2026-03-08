@@ -134,6 +134,7 @@ import {
     removeDesktopTabs,
     updateStripWidgets
 } from './src/systems/ui/desktop.js';
+import { removeAlternatePresentCharactersPanel } from './src/systems/ui/alternatePresentCharacters.js';
 
 // Feature modules
 import { setupPlotButtons, sendPlotProgression } from './src/systems/features/plotProgression.js';
@@ -228,6 +229,7 @@ async function addExtensionSettings() {
             $('#rpg-mobile-toggle').remove();
             $('#rpg-collapse-toggle').remove();
             $('#rpg-plot-buttons').remove(); // Remove plot buttons
+            removeAlternatePresentCharactersPanel();
         } else if (extensionSettings.enabled && !wasEnabled) {
             // Enabling extension - initialize UI
             await initUI();
@@ -339,6 +341,12 @@ async function initUI() {
         extensionSettings.showCharacterThoughts = $(this).prop('checked');
         saveSettings();
         updateSectionVisibility();
+    });
+
+    $('#rpg-toggle-alt-present-characters').on('change', function() {
+        extensionSettings.showAlternatePresentCharactersPanel = $(this).prop('checked');
+        saveSettings();
+        renderThoughts();
     });
 
     $('#rpg-toggle-inventory').on('change', function() {
@@ -1053,6 +1061,7 @@ async function initUI() {
     $('#rpg-toggle-user-stats').prop('checked', extensionSettings.showUserStats);
     $('#rpg-toggle-info-box').prop('checked', extensionSettings.showInfoBox);
     $('#rpg-toggle-thoughts').prop('checked', extensionSettings.showCharacterThoughts);
+    $('#rpg-toggle-alt-present-characters').prop('checked', extensionSettings.showAlternatePresentCharactersPanel ?? false);
     $('#rpg-toggle-inventory').prop('checked', extensionSettings.showInventory);
     $('#rpg-toggle-quests').prop('checked', extensionSettings.showQuests);
     $('#rpg-toggle-lock-icons').prop('checked', extensionSettings.showLockIcons ?? true);
