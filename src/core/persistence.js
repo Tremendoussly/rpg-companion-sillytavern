@@ -317,8 +317,16 @@ export function loadSettings() {
             updateExtensionSettings(savedSettings);
 
             // Perform settings migrations based on version
-            const currentVersion = extensionSettings.settingsVersion || 1;
+            let currentVersion = extensionSettings.settingsVersion || 1;
             let settingsChanged = false;
+
+            // Collapse unreleased local schema versions back to the current
+            // public version so future migrations can stay linear.
+            if (currentVersion > 4) {
+                extensionSettings.settingsVersion = 4;
+                currentVersion = 4;
+                settingsChanged = true;
+            }
 
             // Migration to version 2: Enable dynamic weather for existing users
             if (currentVersion < 2) {
@@ -354,28 +362,39 @@ export function loadSettings() {
                 settingsChanged = true;
             }
 
-            // Migration to version 5: Add opacity properties for all colors
-            if (currentVersion < 5) {
-                // console.log('[RPG Companion] Migrating settings to version 5 (adding color opacity)');
-                if (!extensionSettings.customColors) {
-                    extensionSettings.customColors = {};
-                }
-                if (extensionSettings.customColors.bgOpacity === undefined) extensionSettings.customColors.bgOpacity = 100;
-                if (extensionSettings.customColors.accentOpacity === undefined) extensionSettings.customColors.accentOpacity = 100;
-                if (extensionSettings.customColors.textOpacity === undefined) extensionSettings.customColors.textOpacity = 100;
-                if (extensionSettings.customColors.highlightOpacity === undefined) extensionSettings.customColors.highlightOpacity = 100;
-                if (extensionSettings.statBarColorLowOpacity === undefined) extensionSettings.statBarColorLowOpacity = 100;
-                if (extensionSettings.statBarColorHighOpacity === undefined) extensionSettings.statBarColorHighOpacity = 100;
-                extensionSettings.settingsVersion = 5;
+            // Normalize additive settings introduced after v4 without bumping the
+            // public schema version. This keeps unreleased local changes compatible
+            // while avoiding version churn for simple default-only additions.
+            if (!extensionSettings.customColors) {
+                extensionSettings.customColors = {};
                 settingsChanged = true;
             }
-
-            // Migration to version 6: Add thoughts in chat style setting
-            if (currentVersion < 6) {
-                if (!extensionSettings.thoughtsInChatStyle) {
-                    extensionSettings.thoughtsInChatStyle = 'corner';
-                }
-                extensionSettings.settingsVersion = 6;
+            if (extensionSettings.customColors.bgOpacity === undefined) {
+                extensionSettings.customColors.bgOpacity = 100;
+                settingsChanged = true;
+            }
+            if (extensionSettings.customColors.accentOpacity === undefined) {
+                extensionSettings.customColors.accentOpacity = 100;
+                settingsChanged = true;
+            }
+            if (extensionSettings.customColors.textOpacity === undefined) {
+                extensionSettings.customColors.textOpacity = 100;
+                settingsChanged = true;
+            }
+            if (extensionSettings.customColors.highlightOpacity === undefined) {
+                extensionSettings.customColors.highlightOpacity = 100;
+                settingsChanged = true;
+            }
+            if (extensionSettings.statBarColorLowOpacity === undefined) {
+                extensionSettings.statBarColorLowOpacity = 100;
+                settingsChanged = true;
+            }
+            if (extensionSettings.statBarColorHighOpacity === undefined) {
+                extensionSettings.statBarColorHighOpacity = 100;
+                settingsChanged = true;
+            }
+            if (!extensionSettings.thoughtsInChatStyle) {
+                extensionSettings.thoughtsInChatStyle = 'corner';
                 settingsChanged = true;
             }
 

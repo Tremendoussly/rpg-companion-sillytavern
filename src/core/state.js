@@ -10,7 +10,7 @@
  * Extension settings - persisted to SillyTavern settings
  */
 export let extensionSettings = {
-    settingsVersion: 6, // Version number for settings migrations
+    settingsVersion: 4, // Version number for settings migrations
     enabled: true,
     autoUpdate: false,
     updateDepth: 4, // How many messages to include in the context
