@@ -15,6 +15,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-panel,
 #rpg-thought-panel,
 #rpg-thought-icon,
+#rpg-alt-present-characters,
 .rpg-mobile-toggle {
     --rpg-bg: var(--SmartThemeBlurTintColor, rgba(26, 26, 46, 0.9));
     --rpg-accent: var(--black30a, rgba(22, 33, 62, 0.9));
@@ -5087,16 +5088,16 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-alt-present-character {
-    flex: 0 0 88px;
+    flex: 0 0 92px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    min-width: 88px;
+    gap: 6px;
+    min-width: 92px;
 }
 
 .rpg-alt-present-character__portrait {
     position: relative;
-    aspect-ratio: 1 / 1;
+    aspect-ratio: 3 / 4;
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.14);
@@ -5118,31 +5119,13 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     object-fit: cover;
 }
 
-.rpg-alt-present-character__emoji {
-    position: absolute;
-    right: 6px;
-    bottom: 6px;
-    width: 24px;
-    height: 24px;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.45);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
-    font-size: 0.9rem;
-}
-
 .rpg-alt-present-character__meta {
     display: flex;
     flex-direction: column;
-    gap: 3px;
     min-width: 0;
 }
 
-.rpg-alt-present-character__name,
-.rpg-alt-present-character__relationship {
+.rpg-alt-present-character__name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -5152,11 +5135,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     font-size: 0.82rem;
     font-weight: 600;
     line-height: 1.15;
-}
-
-.rpg-alt-present-character__relationship {
-    font-size: 0.72rem;
-    opacity: 0.78;
+    text-align: center;
 }
 
 @media (max-width: 768px) {
@@ -5167,8 +5146,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 
     .rpg-alt-present-character {
-        flex-basis: 78px;
-        min-width: 78px;
+        flex-basis: 80px;
+        min-width: 80px;
     }
 }
 

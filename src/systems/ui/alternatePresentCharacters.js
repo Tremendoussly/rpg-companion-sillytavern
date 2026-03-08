@@ -50,19 +50,6 @@ function hexToRgba(hex, opacity = 100) {
     return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
-function getRelationshipText(character, relationshipEmojis) {
-    if (!character.Relationship) {
-        return '';
-    }
-
-    const mapped = relationshipEmojis[character.Relationship];
-    if (mapped && mapped !== character.Relationship) {
-        return `${mapped} ${character.Relationship}`;
-    }
-
-    return character.Relationship;
-}
-
 export function removeAlternatePresentCharactersPanel() {
     $(`#${PANEL_ID}`).remove();
 }
@@ -130,14 +117,6 @@ export function renderAlternatePresentCharacters({ useCommittedFallback = true }
         return;
     }
 
-    const config = extensionSettings.trackerConfig?.presentCharacters;
-    const relationshipEmojis = config?.relationshipEmojis || {
-        Enemy: '⚔️',
-        Neutral: '⚖️',
-        Friend: '⭐',
-        Lover: '❤️'
-    };
-    const showRelationships = (config?.relationshipFields || []).length > 0;
     const title = i18n.getTranslation('template.trackerEditorModal.tabs.presentCharacters') || 'Present Characters';
 
     let html = `
@@ -153,20 +132,15 @@ export function renderAlternatePresentCharacters({ useCommittedFallback = true }
 
     for (const character of presentCharacters) {
         const portrait = resolvePresentCharacterPortrait(character.name);
-        const relationshipText = showRelationships ? getRelationshipText(character, relationshipEmojis) : '';
         const name = escapeHtml(character.name || '');
-        const emoji = escapeHtml(character.emoji || '👤');
-        const relationshipTitle = relationshipText ? ` title="${escapeHtml(relationshipText)}"` : '';
 
         html += `
             <div class="rpg-alt-present-character" data-character-name="${name}" title="${name}">
                 <div class="rpg-alt-present-character__portrait">
                     <img src="${portrait}" alt="${name}" loading="lazy" onerror="this.style.opacity='0.5';this.onerror=null;" />
-                    <span class="rpg-alt-present-character__emoji">${emoji}</span>
                 </div>
                 <div class="rpg-alt-present-character__meta">
                     <div class="rpg-alt-present-character__name">${name}</div>
-                    ${relationshipText ? `<div class="rpg-alt-present-character__relationship"${relationshipTitle}>${escapeHtml(relationshipText)}</div>` : ''}
                 </div>
             </div>
         `;
