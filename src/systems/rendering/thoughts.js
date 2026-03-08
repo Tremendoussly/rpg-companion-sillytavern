@@ -1448,6 +1448,7 @@ let isRefreshingInlineThoughts = false;
 
 export function updateChatThoughts(attempt = 0) {
     const thoughtsStyle = extensionSettings.thoughtsInChatStyle || 'corner';
+    const openInlineThoughts = getOpenInlineThoughts();
 
     // Remove old floating thought panel/icon (legacy cleanup)
     $('#rpg-thought-panel').remove();
@@ -1457,7 +1458,7 @@ export function updateChatThoughts(attempt = 0) {
     $(document).off('click.thoughtPanel');
 
     // Remove any existing inline thought dropdowns from previous renders
-    $('.rpg-inline-thought').remove();
+    $('.rpg-inline-thoughts, .rpg-inline-thought').remove();
 
     const canRenderThoughts = extensionSettings.enabled
         && extensionSettings.showThoughtsInChat
@@ -1489,7 +1490,7 @@ export function updateChatThoughts(attempt = 0) {
     }
 
     if (thoughtsStyle === 'inline') {
-        insertInlineThoughts($targetMessage, thoughtsArray);
+        insertInlineThoughts($targetMessage, thoughtsArray, openInlineThoughts);
         ensureInlineThoughtsObserver();
     } else {
         teardownInlineThoughtsObserver();
@@ -1584,6 +1585,19 @@ function stableStringify(value) {
     return JSON.stringify(value);
 }
 
+function getOpenInlineThoughts() {
+    const openThoughts = new Set();
+
+    $('.rpg-inline-thought[open]').each(function () {
+        const characterName = ($(this).attr('data-character') || '').trim();
+        if (characterName) {
+            openThoughts.add(characterName);
+        }
+    });
+
+    return openThoughts;
+}
+
 function ensureInlineThoughtsObserver() {
     if (inlineThoughtsObserver) {
         return;
@@ -1611,8 +1625,7 @@ function ensureInlineThoughtsObserver() {
 
                 return node.classList?.contains('mes')
                     || node.classList?.contains('mes_text')
-                    || node.classList?.contains('rpg-inline-thought')
-                    || node.querySelector?.('.mes, .mes_text, .rpg-inline-thought');
+                    || node.querySelector?.('.mes, .mes_text');
             });
 
             return touchedThoughtNode;
@@ -1741,7 +1754,7 @@ function escapeInlineThoughtHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
-function insertInlineThoughts($message, thoughtsArray) {
+function insertInlineThoughts($message, thoughtsArray, openThoughts = new Set()) {
     const $mesText = $message.find('.mes_text');
     if (!$mesText.length) {
         return;
@@ -1752,19 +1765,41 @@ function insertInlineThoughts($message, thoughtsArray) {
         thoughtsMap[(thoughtData.name || '').toLowerCase()] = thoughtData;
     }
 
+    const $container = $('<div class="rpg-inline-thoughts"></div>');
+    bindInlineThoughtEvents($container);
+
     for (const [, thoughtData] of Object.entries(thoughtsMap)) {
-        const $dropdown = createInlineThoughtDropdown(thoughtData);
-        $mesText.append($dropdown);
+        const $dropdown = createInlineThoughtDropdown(thoughtData, openThoughts);
+        $container.append($dropdown);
+    }
+
+    if (!$container.children().length) {
+        return;
+    }
+
+    const $mediaWrapper = $message.find('.mes_media_wrapper').first();
+    if ($mediaWrapper.length) {
+        $container.insertBefore($mediaWrapper);
+    } else {
+        $container.insertAfter($mesText.last());
     }
 }
 
-function createInlineThoughtDropdown(thoughtData) {
+function bindInlineThoughtEvents($container) {
+    $container.on('click mousedown touchstart', '.rpg-inline-thought, .rpg-inline-thought-summary, .rpg-inline-thought-content', function (e) {
+        e.stopPropagation();
+    });
+}
+
+function createInlineThoughtDropdown(thoughtData, openThoughts = new Set()) {
     const characterName = thoughtData.name || '';
     const characterEmoji = thoughtData.emoji || '👤';
     const thoughtText = thoughtData.thought || '';
+    const normalizedCharacterName = characterName.toLowerCase();
+    const openAttribute = openThoughts.has(normalizedCharacterName) ? ' open' : '';
 
     return $(`
-        <details class="rpg-inline-thought" data-character="${escapeInlineThoughtHtml(characterName.toLowerCase())}">
+        <details class="rpg-inline-thought" data-character="${escapeInlineThoughtHtml(normalizedCharacterName)}"${openAttribute}>
             <summary class="rpg-inline-thought-summary">
                 <span class="rpg-inline-thought-icon">${escapeInlineThoughtHtml(characterEmoji)}</span>
                 <span class="rpg-inline-thought-name">${escapeInlineThoughtHtml(characterName)}'s thoughts</span>

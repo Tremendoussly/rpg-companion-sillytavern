@@ -11678,9 +11678,15 @@ body:has(.rpg-panel[data-theme="light"]) .rpg-strip-widget {
     }
 }
 
+.rpg-inline-thoughts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    margin: 0.2em 0 0.35em;
+}
 
 .rpg-inline-thought {
-    margin-top: 0.5em;
+    margin: 0;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-left: 2px solid rgba(255, 120, 140, 0.6);
     border-radius: 0.5em;
