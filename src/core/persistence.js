@@ -372,6 +372,62 @@ export function loadChatData() {
     // Validate inventory structure (Bug #3 fix)
     validateInventoryStructure(extensionSettings.userStats.inventory, 'chat');
 
+
+    // Sync display data from the latest assistant message's stored swipe payload.
+    // This is more reliable than chat metadata alone on chat re-entry because the
+    // latest rendered swipe data may exist on the message even if the debounced
+    // metadata save did not flush yet.
+    try {
+        const chatContext = getContext();
+        const chatMessages = chatContext?.chat;
+
+        if (Array.isArray(chatMessages)) {
+            for (let i = chatMessages.length - 1; i >= 0; i--) {
+                const message = chatMessages[i];
+                if (message?.is_user) continue;
+
+                const swipeId = message.swipe_id || 0;
+                let swipeData = message.extra?.rpg_companion_swipes?.[swipeId];
+
+                if (!swipeData && message.swipe_info?.[swipeId]?.extra?.rpg_companion_swipes) {
+                    swipeData = message.swipe_info[swipeId].extra.rpg_companion_swipes[swipeId]
+                        || message.swipe_info[swipeId].extra.rpg_companion_swipes;
+                }
+
+                if (!swipeData) continue;
+
+                const latestData = {};
+
+                if (swipeData.userStats) latestData.userStats = swipeData.userStats;
+                if (swipeData.infoBox) latestData.infoBox = swipeData.infoBox;
+                if (swipeData.characterThoughts) {
+                    latestData.characterThoughts = typeof swipeData.characterThoughts === 'object'
+                        ? JSON.stringify(swipeData.characterThoughts, null, 2)
+                        : swipeData.characterThoughts;
+                }
+
+                if (latestData.userStats || latestData.infoBox || latestData.characterThoughts) {
+                    setLastGeneratedData({
+                        userStats: latestData.userStats || lastGeneratedData.userStats,
+                        infoBox: latestData.infoBox || lastGeneratedData.infoBox,
+                        characterThoughts: latestData.characterThoughts || lastGeneratedData.characterThoughts,
+                        html: lastGeneratedData.html || null
+                    });
+
+                    setCommittedTrackerData({
+                        userStats: latestData.userStats || committedTrackerData.userStats,
+                        infoBox: latestData.infoBox || committedTrackerData.infoBox,
+                        characterThoughts: latestData.characterThoughts || committedTrackerData.characterThoughts
+                    });
+                }
+
+                break;
+            }
+        }
+    } catch (e) {
+        console.warn('[RPG Companion] Per-message data sync skipped:', e.message);
+    }
+
     // console.log('[RPG Companion] Loaded chat data:', savedData);
 }
 
