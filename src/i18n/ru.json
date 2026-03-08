@@ -43,7 +43,7 @@
     "template.settingsModal.display.showLockIcons": "Показывать значки блокировки/разблокировки трекеров",
     "template.settingsModal.display.showLockIconsNote": "Отображать значки блокировки/разблокировки на элементах трекера, чтобы предотвратить их изменение ИИ.",
     "template.settingsModal.display.showThoughtsInChat": "Показывать мысли",
-    "template.settingsModal.display.showThoughtsInChatNote": "Отображать мысли персонажей рядом с сообщением или под последним сообщением персонажа.",
+    "template.settingsModal.display.showThoughtsInChatNote": "Отображать мысли персонажей в виде всплывающих пузырьков рядом с их сообщениями.",
     "template.settingsModal.display.alwaysShowThoughtBubble": "Всегда показывать пузырь мыслей",
     "template.settingsModal.display.alwaysShowThoughtBubbleNote": "Автоматически раскрывать пузырь мыслей без предварительного нажатия на значок",
     "template.settingsModal.display.enableAnimations": "Включить анимации",

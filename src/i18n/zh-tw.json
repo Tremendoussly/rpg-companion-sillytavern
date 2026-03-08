@@ -34,7 +34,7 @@
     "template.settingsModal.display.showLockIcons": "顯示鎖定/解鎖追蹤器",
     "template.settingsModal.display.showLockIconsNote": "在追蹤器項目上顯示鎖定/解鎖圖示，以防止 AI 修改它們。",
     "template.settingsModal.display.showThoughtsInChat": "在聊天中顯示想法",
-    "template.settingsModal.display.showThoughtsInChatNote": "將角色想法顯示在角色最新訊息的旁邊或下方",
+    "template.settingsModal.display.showThoughtsInChatNote": "將角色想法顯示為其訊息旁的泡泡",
     "template.settingsModal.display.alwaysShowThoughtBubble": "始終顯示想法泡泡",
     "template.settingsModal.display.alwaysShowThoughtBubbleNote": "自動展開想法泡泡",
     "template.settingsModal.display.enableAnimations": "啟用動畫",

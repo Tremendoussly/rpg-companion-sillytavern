@@ -1438,8 +1438,8 @@ function renderThoughtsSidebarOnly() {
 }
 
 /**
- * Updates or removes thought overlays in the chat.
- * Creates floating thought bubbles positioned near character avatars.
+ * Updates or removes thoughts shown in chat.
+ * Renders either the original corner bubbles or inline dropdown cards.
  */
 
 let inlineThoughtsObserver = null;
@@ -1505,6 +1505,8 @@ function findThoughtTargetMessage() {
 
     let fallbackIndex = -1;
 
+    // Match the currently displayed thoughts against stored swipe payloads so the
+    // UI stays attached to the visible assistant reply after swipes, deletes, and reloads.
     for (let i = chat.length - 1; i >= 0; i--) {
         const message = chat[i];
         if (message?.is_user) continue;
@@ -1606,6 +1608,9 @@ function ensureInlineThoughtsObserver() {
             return;
         }
 
+        // SillyTavern rerenders message DOM after swipes, deletes, and message cleanup.
+        // Watch for those chat-level mutations and reattach inline thoughts once the
+        // target message body exists again, while ignoring our own refresh churn.
         const shouldRefresh = mutations.some((mutation) => {
             if (mutation.type !== 'childList') {
                 return false;
@@ -1770,6 +1775,8 @@ function insertInlineThoughts($message, thoughtsArray, openThoughts = new Set())
         return;
     }
 
+    // Mount outside .mes_text so SillyTavern's click-to-edit handlers do not
+    // intercept summary clicks before the details element can toggle.
     const $mediaWrapper = $message.find('.mes_media_wrapper').first();
     if ($mediaWrapper.length) {
         $container.insertBefore($mediaWrapper);

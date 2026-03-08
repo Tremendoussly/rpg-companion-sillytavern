@@ -354,37 +354,23 @@ export function loadSettings() {
                 settingsChanged = true;
             }
 
-            // Normalize additive settings introduced after v4 without bumping the
-            // public schema version. This keeps unreleased local changes compatible
-            // while avoiding version churn for simple default-only additions.
-            if (!extensionSettings.customColors) {
-                extensionSettings.customColors = {};
+            // Migration to version 5: Add opacity properties for all colors
+            if (currentVersion < 5) {
+                // console.log('[RPG Companion] Migrating settings to version 5 (adding color opacity)');
+                if (!extensionSettings.customColors) {
+                    extensionSettings.customColors = {};
+                }
+                if (extensionSettings.customColors.bgOpacity === undefined) extensionSettings.customColors.bgOpacity = 100;
+                if (extensionSettings.customColors.accentOpacity === undefined) extensionSettings.customColors.accentOpacity = 100;
+                if (extensionSettings.customColors.textOpacity === undefined) extensionSettings.customColors.textOpacity = 100;
+                if (extensionSettings.customColors.highlightOpacity === undefined) extensionSettings.customColors.highlightOpacity = 100;
+                if (extensionSettings.statBarColorLowOpacity === undefined) extensionSettings.statBarColorLowOpacity = 100;
+                if (extensionSettings.statBarColorHighOpacity === undefined) extensionSettings.statBarColorHighOpacity = 100;
+                extensionSettings.settingsVersion = 5;
                 settingsChanged = true;
             }
-            if (extensionSettings.customColors.bgOpacity === undefined) {
-                extensionSettings.customColors.bgOpacity = 100;
-                settingsChanged = true;
-            }
-            if (extensionSettings.customColors.accentOpacity === undefined) {
-                extensionSettings.customColors.accentOpacity = 100;
-                settingsChanged = true;
-            }
-            if (extensionSettings.customColors.textOpacity === undefined) {
-                extensionSettings.customColors.textOpacity = 100;
-                settingsChanged = true;
-            }
-            if (extensionSettings.customColors.highlightOpacity === undefined) {
-                extensionSettings.customColors.highlightOpacity = 100;
-                settingsChanged = true;
-            }
-            if (extensionSettings.statBarColorLowOpacity === undefined) {
-                extensionSettings.statBarColorLowOpacity = 100;
-                settingsChanged = true;
-            }
-            if (extensionSettings.statBarColorHighOpacity === undefined) {
-                extensionSettings.statBarColorHighOpacity = 100;
-                settingsChanged = true;
-            }
+
+            // Normalize additive settings without introducing another schema bump.
             if (!extensionSettings.thoughtsInChatStyle) {
                 extensionSettings.thoughtsInChatStyle = 'corner';
                 settingsChanged = true;
