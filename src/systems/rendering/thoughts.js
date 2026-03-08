@@ -15,7 +15,7 @@ import {
     addDebugLog
 } from '../../core/state.js';
 import { i18n } from '../../core/i18n.js';
-import { saveChatData, saveSettings } from '../../core/persistence.js';
+import { saveChatData, saveSettings, getCurrentMessageSwipeTrackerData } from '../../core/persistence.js';
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
 import { isItemLocked, setItemLock } from '../generation/lockManager.js';
 
@@ -1537,14 +1537,7 @@ function getMessageThoughtPayload(message) {
         return null;
     }
 
-    const swipeId = message.swipe_id || 0;
-    let swipeData = message.extra?.rpg_companion_swipes?.[swipeId];
-
-    if (!swipeData && message.swipe_info?.[swipeId]?.extra?.rpg_companion_swipes) {
-        swipeData = message.swipe_info[swipeId].extra.rpg_companion_swipes[swipeId]
-            || message.swipe_info[swipeId].extra.rpg_companion_swipes;
-    }
-
+    const swipeData = getCurrentMessageSwipeTrackerData(message);
     return normalizeThoughtPayload(swipeData?.characterThoughts ?? null);
 }
 

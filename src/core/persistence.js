@@ -29,7 +29,7 @@ function hasTrackerPayload(payload) {
     ));
 }
 
-function getTrackerPayloadFromSwipeStore(store, preferredSwipeId = 0) {
+function getCurrentTrackerPayloadFromSwipeStore(store, preferredSwipeId = 0) {
     if (!store) {
         return null;
     }
@@ -42,6 +42,19 @@ function getTrackerPayloadFromSwipeStore(store, preferredSwipeId = 0) {
     const preferredPayload = store[preferredKey] ?? store[preferredSwipeId];
     if (hasTrackerPayload(preferredPayload)) {
         return preferredPayload;
+    }
+
+    return null;
+}
+
+function getTrackerPayloadFromSwipeStore(store, preferredSwipeId = 0) {
+    const currentPayload = getCurrentTrackerPayloadFromSwipeStore(store, preferredSwipeId);
+    if (currentPayload) {
+        return currentPayload;
+    }
+
+    if (!store || typeof store !== 'object') {
+        return null;
     }
 
     const numericKeys = Object.keys(store)
@@ -64,12 +77,38 @@ function getTrackerPayloadFromSwipeStore(store, preferredSwipeId = 0) {
     return null;
 }
 
+export function getCurrentMessageSwipeTrackerData(message) {
+    if (!message || message.is_user) {
+        return null;
+    }
+
+    const swipeId = Number(message.swipe_id ?? 0);
+
+    const preferredSources = [
+        message.extra?.rpg_companion_swipes,
+        message.swipe_info?.[swipeId]?.extra?.rpg_companion_swipes
+    ];
+
+    for (const source of preferredSources) {
+        const payload = getCurrentTrackerPayloadFromSwipeStore(source, swipeId);
+        if (payload) {
+            return payload;
+        }
+    }
+
+    return null;
+}
+
 export function getMessageSwipeTrackerData(message) {
     if (!message || message.is_user) {
         return null;
     }
 
     const swipeId = Number(message.swipe_id ?? 0);
+    const currentPayload = getCurrentMessageSwipeTrackerData(message);
+    if (currentPayload) {
+        return currentPayload;
+    }
 
     const preferredSources = [
         message.extra?.rpg_companion_swipes,
@@ -104,7 +143,7 @@ export function getLatestTrackerDataFromChat(chatMessages) {
         const message = chatMessages[i];
         if (message?.is_user) continue;
 
-        const swipeData = getMessageSwipeTrackerData(message);
+        const swipeData = getCurrentMessageSwipeTrackerData(message);
         if (!swipeData) continue;
 
         return {

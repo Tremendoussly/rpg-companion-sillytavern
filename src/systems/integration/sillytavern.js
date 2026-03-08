@@ -22,7 +22,7 @@ import {
     updateCommittedTrackerData,
     $musicPlayerContainer
 } from '../../core/state.js';
-import { saveChatData, loadChatData, autoSwitchPresetForEntity, getMessageSwipeTrackerData, restoreLatestTrackerStateFromChat } from '../../core/persistence.js';
+import { saveChatData, loadChatData, autoSwitchPresetForEntity, getMessageSwipeTrackerData, getCurrentMessageSwipeTrackerData, restoreLatestTrackerStateFromChat } from '../../core/persistence.js';
 import { i18n } from '../../core/i18n.js';
 
 // Generation & Parsing
@@ -91,6 +91,10 @@ export function commitTrackerData() {
 
 function getSwipeTrackerData(message) {
     return getMessageSwipeTrackerData(message);
+}
+
+function getCurrentSwipeTrackerData(message) {
+    return getCurrentMessageSwipeTrackerData(message);
 }
 
 function hasAssistantMessageBody() {
@@ -230,6 +234,22 @@ export function onChatLoaded() {
     rerenderRpgState();
     scheduleChatStateRehydration();
     updateAllCheckpointIndicators();
+}
+
+function syncDisplayedTrackerStateFromChat() {
+    const restored = restoreLatestTrackerStateFromChat(getContext()?.chat);
+
+    if (!restored) {
+        lastGeneratedData.userStats = null;
+        lastGeneratedData.infoBox = null;
+        lastGeneratedData.characterThoughts = null;
+        committedTrackerData.userStats = null;
+        committedTrackerData.infoBox = null;
+        committedTrackerData.characterThoughts = null;
+    }
+
+    rerenderRpgState();
+    updateChatThoughts();
 }
 
 /**
@@ -506,6 +526,7 @@ export function onMessageSwiped(messageIndex) {
     }
 
     const currentSwipeId = message.swipe_id || 0;
+    const swipeCount = Array.isArray(message.swipes) ? message.swipes.length : 0;
 
     // Only set flag to true if this swipe will trigger a NEW generation
     // Check if the swipe already exists (has content in the swipes array)
@@ -513,8 +534,8 @@ export function onMessageSwiped(messageIndex) {
         message.swipes[currentSwipeId] !== undefined &&
         message.swipes[currentSwipeId] !== null &&
         message.swipes[currentSwipeId].length > 0;
-    const swipeData = getSwipeTrackerData(message);
-    const isPendingNewSwipe = !isExistingSwipe && !swipeData;
+    const swipeData = getCurrentSwipeTrackerData(message);
+    const isPendingNewSwipe = currentSwipeId >= swipeCount;
 
     if (!isExistingSwipe) {
         // This is a NEW swipe that will trigger generation
@@ -569,6 +590,14 @@ export function onMessageSwiped(messageIndex) {
 
     // Update chat thought overlays
     updateChatThoughts();
+}
+
+export function onMessageDeleted() {
+    if (!extensionSettings.enabled) {
+        return;
+    }
+
+    syncDisplayedTrackerStateFromChat();
 }
 
 /**
