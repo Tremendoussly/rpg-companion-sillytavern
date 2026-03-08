@@ -1589,7 +1589,6 @@ function insertInlineThoughts($message, thoughtsArray) {
 
 function createInlineThoughtDropdown(thoughtData) {
     const characterName = thoughtData.name || '';
-    const emoji = thoughtData.emoji || '👤';
     const thoughtText = thoughtData.thought || '';
 
     return $(`
@@ -1599,14 +1598,7 @@ function createInlineThoughtDropdown(thoughtData) {
                 <span class="rpg-inline-thought-name">${escapeInlineThoughtHtml(characterName)}'s thoughts</span>
             </summary>
             <div class="rpg-inline-thought-content">
-                <div class="rpg-thought-item">
-                    <div class="rpg-thought-emoji-box">
-                        ${escapeInlineThoughtHtml(emoji)}
-                    </div>
-                    <div class="rpg-thought-content">
-                        ${escapeInlineThoughtHtml(thoughtText)}
-                    </div>
-                </div>
+                <div class="rpg-inline-thought-text">${escapeInlineThoughtHtml(thoughtText)}</div>
             </div>
         </details>
     `);
