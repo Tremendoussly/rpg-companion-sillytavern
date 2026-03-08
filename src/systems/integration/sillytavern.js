@@ -4,7 +4,7 @@
  */
 
 import { getContext } from '../../../../../../extensions.js';
-import { chat, user_avatar, setExtensionPrompt, extension_prompt_types, saveChatDebounced } from '../../../../../../../script.js';
+import { chat, chat_metadata, user_avatar, setExtensionPrompt, extension_prompt_types } from '../../../../../../../script.js';
 
 // Core modules
 import {
@@ -51,6 +51,8 @@ import { updateStripWidgets } from '../ui/desktop.js';
 import { updateAllCheckpointIndicators } from '../ui/checkpointUI.js';
 import { restoreCheckpointOnLoad } from '../features/chapterCheckpoint.js';
 
+let chatStateRehydrateRunId = 0;
+
 /**
  * Commits the tracker data from the last assistant message to be used as source for next generation.
  * This should be called when the user has replied to a message, ensuring all swipes of the next
@@ -85,6 +87,111 @@ export function commitTrackerData() {
             break;
         }
     }
+}
+
+function getSwipeTrackerData(message) {
+    if (!message || message.is_user) {
+        return null;
+    }
+
+    const swipeId = message.swipe_id || 0;
+    let swipeData = message.extra?.rpg_companion_swipes?.[swipeId];
+
+    if (!swipeData && message.swipe_info?.[swipeId]?.extra?.rpg_companion_swipes) {
+        swipeData = message.swipe_info[swipeId].extra.rpg_companion_swipes[swipeId]
+            || message.swipe_info[swipeId].extra.rpg_companion_swipes;
+    }
+
+    return swipeData || null;
+}
+
+function hasAssistantMessageBody() {
+    const $messages = $('#chat .mes');
+
+    for (let i = $messages.length - 1; i >= 0; i--) {
+        const $message = $messages.eq(i);
+        if ($message.attr('is_user') === 'true') continue;
+        if ($message.find('.mes_text').length > 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function hasAnyTrackerStateInChat() {
+    const chatMessages = getContext()?.chat || [];
+
+    for (let i = chatMessages.length - 1; i >= 0; i--) {
+        const swipeData = getSwipeTrackerData(chatMessages[i]);
+        if (swipeData?.userStats || swipeData?.infoBox || swipeData?.characterThoughts) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function maybeRehydrateUserStatsFromDisplayData() {
+    const hasSavedUserStats = !!chat_metadata?.rpg_companion?.userStats;
+    if (!hasSavedUserStats && lastGeneratedData.userStats) {
+        try {
+            parseUserStats(lastGeneratedData.userStats);
+        } catch (error) {
+            console.warn('[RPG Companion] Failed to rebuild user stats from display data:', error);
+        }
+    }
+}
+
+function rerenderRpgState() {
+    renderUserStats();
+    renderInfoBox();
+    renderThoughts();
+    renderInventory();
+    renderQuests();
+    renderMusicPlayer($musicPlayerContainer[0]);
+    updateFabWidgets();
+    updateStripWidgets();
+}
+
+export function scheduleChatStateRehydration() {
+    chatStateRehydrateRunId++;
+    const runId = chatStateRehydrateRunId;
+    let attempts = 0;
+    const maxAttempts = 15;
+
+    const tryRestoreState = () => {
+        if (runId !== chatStateRehydrateRunId) {
+            return;
+        }
+
+        attempts++;
+
+        loadChatData();
+        maybeRehydrateUserStatsFromDisplayData();
+        rerenderRpgState();
+
+        const hasTrackerState = !!(
+            lastGeneratedData.userStats
+            || lastGeneratedData.infoBox
+            || lastGeneratedData.characterThoughts
+            || committedTrackerData.userStats
+            || committedTrackerData.infoBox
+            || committedTrackerData.characterThoughts
+            || hasAnyTrackerStateInChat()
+        );
+        const chatBodyReady = hasAssistantMessageBody();
+
+        if (chatBodyReady) {
+            updateChatThoughts();
+        }
+
+        if ((!hasTrackerState || !chatBodyReady) && attempts < maxAttempts) {
+            setTimeout(tryRestoreState, 200);
+        }
+    };
+
+    setTimeout(tryRestoreState, 200);
 }
 
 /**
@@ -315,6 +422,7 @@ export function onCharacterChanged() {
     // Remove thought panel and icon when changing characters
     $('#rpg-thought-panel').remove();
     $('#rpg-thought-icon').remove();
+    $('.rpg-inline-thoughts, .rpg-inline-thought').remove();
     $('#chat').off('scroll.thoughtPanel');
     $(window).off('resize.thoughtPanel');
     $(document).off('click.thoughtPanel');
@@ -333,45 +441,9 @@ export function onCharacterChanged() {
     // already contains the committed state from when we last left this chat.
     // commitTrackerData() will be called naturally when new messages arrive.
 
-    // Re-render with the loaded data
-    renderUserStats();
-    renderInfoBox();
-    renderThoughts();
-    renderInventory();
-    renderQuests();
-    renderMusicPlayer($musicPlayerContainer[0]);
-
-    // Update FAB widgets and strip widgets with loaded data
-    updateFabWidgets();
-    updateStripWidgets();
-
-    // SillyTavern can finish rebuilding the chat DOM after CHAT_CHANGED fires.
-    // Poll briefly like Doom does so inline thoughts are restored on first load,
-    // not only after a swipe or other later re-render.
-    let attempts = 0;
-    const maxAttempts = 15;
-    const tryRenderChatThoughts = () => {
-        attempts++;
-
-        const $messages = $('#chat .mes');
-        let hasAssistantMessageBody = false;
-
-        for (let i = $messages.length - 1; i >= 0; i--) {
-            const $message = $messages.eq(i);
-            if ($message.attr('is_user') === 'true') continue;
-            if ($message.find('.mes_text').length > 0) {
-                hasAssistantMessageBody = true;
-                break;
-            }
-        }
-
-        if (hasAssistantMessageBody) {
-            updateChatThoughts();
-        } else if (attempts < maxAttempts) {
-            setTimeout(tryRenderChatThoughts, 200);
-        }
-    };
-    setTimeout(tryRenderChatThoughts, 200);
+    // Re-render with the loaded data and retry once SillyTavern finishes restoring chat state.
+    rerenderRpgState();
+    scheduleChatStateRehydration();
 
     // Update checkpoint indicators for the loaded chat
     updateAllCheckpointIndicators();
@@ -403,6 +475,8 @@ export function onMessageSwiped(messageIndex) {
         message.swipes[currentSwipeId] !== undefined &&
         message.swipes[currentSwipeId] !== null &&
         message.swipes[currentSwipeId].length > 0;
+    const swipeData = getSwipeTrackerData(message);
+    const isPendingNewSwipe = !isExistingSwipe && !swipeData;
 
     if (!isExistingSwipe) {
         // This is a NEW swipe that will trigger generation
@@ -414,13 +488,16 @@ export function onMessageSwiped(messageIndex) {
         // console.log('[RPG Companion] 🔵 EXISTING swipe navigation - lastActionWasSwipe unchanged =', lastActionWasSwipe);
     }
 
+    if (isPendingNewSwipe) {
+        lastGeneratedData.characterThoughts = null;
+    }
+
     // console.log('[RPG Companion] Loading data for swipe', currentSwipeId);
 
     // IMPORTANT: onMessageSwiped is for DISPLAY only!
     // lastGeneratedData is for DISPLAY, committedTrackerData is for GENERATION
     // It's safe to load swipe data into lastGeneratedData - it won't be committed due to !lastActionWasSwipe check
-    if (message.extra && message.extra.rpg_companion_swipes && message.extra.rpg_companion_swipes[currentSwipeId]) {
-        const swipeData = message.extra.rpg_companion_swipes[currentSwipeId];
+    if (swipeData) {
 
         // Load swipe data into lastGeneratedData for display (both modes)
         lastGeneratedData.userStats = swipeData.userStats || null;
@@ -447,7 +524,7 @@ export function onMessageSwiped(messageIndex) {
     // Re-render the panels
     renderUserStats();
     renderInfoBox();
-    renderThoughts();
+    renderThoughts({ useCommittedFallback: !isPendingNewSwipe });
     renderInventory();
     renderQuests();
     renderMusicPlayer($musicPlayerContainer[0]);

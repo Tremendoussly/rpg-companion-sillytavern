@@ -151,6 +151,7 @@ import {
     onMessageReceived,
     onCharacterChanged,
     onMessageSwiped,
+    scheduleChatStateRehydration,
     updatePersonaAvatar,
     clearExtensionPrompts,
     onGenerationEnded,
@@ -229,6 +230,7 @@ async function addExtensionSettings() {
             // Enabling extension - initialize UI
             await initUI();
             loadChatData(); // Load chat data for current chat
+            scheduleChatStateRehydration();
             updateChatThoughts(); // Create thought bubbles if data exists
             injectCheckpointButton(); // Re-add checkpoint buttons
             updateAllCheckpointIndicators(); // Update button states
@@ -1290,6 +1292,7 @@ jQuery(async () => {
         // Load chat-specific data for current chat
         try {
             loadChatData();
+            scheduleChatStateRehydration();
             // Initialize FAB widgets and strip widgets with any loaded data
             updateFabWidgets();
             updateStripWidgets();

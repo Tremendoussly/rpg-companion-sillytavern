@@ -154,7 +154,7 @@ function namesMatch(cardName, aiName) {
  * Displays character cards with avatars, relationship badges, and traits.
  * Includes event listeners for editable character fields.
  */
-export function renderThoughts({ preserveScroll = false } = {}) {
+export function renderThoughts({ preserveScroll = false, useCommittedFallback = true } = {}) {
     if (!extensionSettings.showCharacterThoughts || !$thoughtsContainer) {
         return;
     }
@@ -169,7 +169,7 @@ export function renderThoughts({ preserveScroll = false } = {}) {
     }
 
     // Don't render if no data exists (e.g., after cache clear)
-    const thoughtsData = lastGeneratedData.characterThoughts || committedTrackerData.characterThoughts;
+    const thoughtsData = lastGeneratedData.characterThoughts || (useCommittedFallback ? committedTrackerData.characterThoughts : null);
     if (!thoughtsData) {
         $thoughtsContainer.html('<div class="rpg-inventory-empty">No character data generated yet</div>');
         return;
@@ -193,7 +193,7 @@ export function renderThoughts({ preserveScroll = false } = {}) {
     const hasRelationshipEnabled = relationshipFields.length > 0;
 
     // Use committedTrackerData as fallback if lastGeneratedData is empty (e.g., after page refresh)
-    const characterThoughtsData = lastGeneratedData.characterThoughts || committedTrackerData.characterThoughts || '';
+    const characterThoughtsData = lastGeneratedData.characterThoughts || (useCommittedFallback ? committedTrackerData.characterThoughts : null) || '';
 
     // console.log('[RPG Companion] renderThoughts - Reading from lastGeneratedData:', JSON.stringify(lastGeneratedData.characterThoughts));
     // console.log('[RPG Companion] renderThoughts - Reading from committedTrackerData:', JSON.stringify(committedTrackerData.characterThoughts));
