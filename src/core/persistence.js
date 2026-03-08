@@ -77,6 +77,43 @@ function getTrackerPayloadFromSwipeStore(store, preferredSwipeId = 0) {
     return null;
 }
 
+function ensureTrackerPayloadSlot(store, swipeId = 0) {
+    if (!store || typeof store !== 'object' || Array.isArray(store)) {
+        return null;
+    }
+
+    if (hasTrackerPayload(store)) {
+        return store;
+    }
+
+    if (!store[swipeId] || typeof store[swipeId] !== 'object' || Array.isArray(store[swipeId])) {
+        store[swipeId] = {};
+    }
+
+    return store[swipeId];
+}
+
+function ensureSwipeInfoEntry(message, swipeId = 0) {
+    if (!Array.isArray(message?.swipe_info)) {
+        return null;
+    }
+
+    if (!message.swipe_info[swipeId] || typeof message.swipe_info[swipeId] !== 'object') {
+        message.swipe_info[swipeId] = {
+            send_date: message.send_date,
+            gen_started: message.gen_started,
+            gen_finished: message.gen_finished,
+            extra: {}
+        };
+    }
+
+    if (!message.swipe_info[swipeId].extra || typeof message.swipe_info[swipeId].extra !== 'object') {
+        message.swipe_info[swipeId].extra = {};
+    }
+
+    return message.swipe_info[swipeId];
+}
+
 export function getCurrentMessageSwipeTrackerData(message) {
     if (!message || message.is_user) {
         return null;
@@ -178,6 +215,46 @@ export function restoreLatestTrackerStateFromChat(chatMessages) {
     });
 
     return true;
+}
+
+export function setMessageSwipeTrackerData(message, swipeId = 0, trackerData = {}) {
+    if (!message || message.is_user || !trackerData || typeof trackerData !== 'object') {
+        return null;
+    }
+
+    if (!message.extra || typeof message.extra !== 'object') {
+        message.extra = {};
+    }
+    if (!message.extra.rpg_companion_swipes || typeof message.extra.rpg_companion_swipes !== 'object' || Array.isArray(message.extra.rpg_companion_swipes)) {
+        message.extra.rpg_companion_swipes = {};
+    }
+
+    const extraPayload = ensureTrackerPayloadSlot(message.extra.rpg_companion_swipes, swipeId);
+    if (extraPayload) {
+        Object.assign(extraPayload, trackerData);
+    }
+
+    const swipeInfoEntry = ensureSwipeInfoEntry(message, swipeId);
+    if (swipeInfoEntry) {
+        if (!swipeInfoEntry.extra.rpg_companion_swipes || typeof swipeInfoEntry.extra.rpg_companion_swipes !== 'object' || Array.isArray(swipeInfoEntry.extra.rpg_companion_swipes)) {
+            swipeInfoEntry.extra.rpg_companion_swipes = {};
+        }
+
+        const swipePayload = ensureTrackerPayloadSlot(swipeInfoEntry.extra.rpg_companion_swipes, swipeId);
+        if (swipePayload) {
+            Object.assign(swipePayload, trackerData);
+        }
+    }
+
+    return extraPayload;
+}
+
+export function setMessageSwipeTrackerField(message, swipeId = 0, field, value) {
+    if (!field) {
+        return null;
+    }
+
+    return setMessageSwipeTrackerData(message, swipeId, { [field]: value });
 }
 
 /**
@@ -415,11 +492,11 @@ export function updateMessageSwipeData() {
             }
 
             const swipeId = message.swipe_id || 0;
-            message.extra.rpg_companion_swipes[swipeId] = {
+            setMessageSwipeTrackerData(message, swipeId, {
                 userStats: lastGeneratedData.userStats,
                 infoBox: lastGeneratedData.infoBox,
                 characterThoughts: lastGeneratedData.characterThoughts
-            };
+            });
 
             // console.log('[RPG Companion] Updated message swipe data after user edit');
             break;

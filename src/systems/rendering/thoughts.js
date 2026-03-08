@@ -15,7 +15,7 @@ import {
     addDebugLog
 } from '../../core/state.js';
 import { i18n } from '../../core/i18n.js';
-import { saveChatData, saveSettings, getCurrentMessageSwipeTrackerData } from '../../core/persistence.js';
+import { saveChatData, saveSettings, getCurrentMessageSwipeTrackerData, setMessageSwipeTrackerField } from '../../core/persistence.js';
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
 import { isItemLocked, setItemLock } from '../generation/lockManager.js';
 
@@ -839,7 +839,7 @@ export function removeCharacter(characterName) {
                 if (message.extra && message.extra.rpg_companion_swipes) {
                     const swipeId = message.swipe_id || 0;
                     if (message.extra.rpg_companion_swipes[swipeId]) {
-                        message.extra.rpg_companion_swipes[swipeId].characterThoughts = lastGeneratedData.characterThoughts;
+                        setMessageSwipeTrackerField(message, swipeId, 'characterThoughts', lastGeneratedData.characterThoughts);
                     }
                 }
                 break;
@@ -969,7 +969,7 @@ export function addNewCharacter() {
                 if (message.extra && message.extra.rpg_companion_swipes) {
                     const swipeId = message.swipe_id || 0;
                     if (message.extra.rpg_companion_swipes[swipeId]) {
-                        message.extra.rpg_companion_swipes[swipeId].characterThoughts = lastGeneratedData.characterThoughts;
+                        setMessageSwipeTrackerField(message, swipeId, 'characterThoughts', lastGeneratedData.characterThoughts);
                     }
                 }
                 break;
@@ -1152,7 +1152,7 @@ export function updateCharacterField(characterName, field, value) {
                     if (message.extra && message.extra.rpg_companion_swipes) {
                         const swipeId = message.swipe_id || 0;
                         if (message.extra.rpg_companion_swipes[swipeId]) {
-                            message.extra.rpg_companion_swipes[swipeId].characterThoughts = lastGeneratedData.characterThoughts;
+                            setMessageSwipeTrackerField(message, swipeId, 'characterThoughts', lastGeneratedData.characterThoughts);
                         }
                     }
                     break;
@@ -1381,7 +1381,7 @@ export function updateCharacterField(characterName, field, value) {
                 if (message.extra && message.extra.rpg_companion_swipes) {
                     const swipeId = message.swipe_id || 0;
                     if (message.extra.rpg_companion_swipes[swipeId]) {
-                        message.extra.rpg_companion_swipes[swipeId].characterThoughts = lines.join('\n');
+                        setMessageSwipeTrackerField(message, swipeId, 'characterThoughts', lines.join('\n'));
                     }
                 }
                 break;

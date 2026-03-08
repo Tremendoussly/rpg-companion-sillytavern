@@ -22,7 +22,7 @@ import {
     updateCommittedTrackerData,
     $musicPlayerContainer
 } from '../../core/state.js';
-import { saveChatData, loadChatData, autoSwitchPresetForEntity, getMessageSwipeTrackerData, getCurrentMessageSwipeTrackerData, restoreLatestTrackerStateFromChat } from '../../core/persistence.js';
+import { saveChatData, loadChatData, autoSwitchPresetForEntity, getMessageSwipeTrackerData, getCurrentMessageSwipeTrackerData, restoreLatestTrackerStateFromChat, setMessageSwipeTrackerData } from '../../core/persistence.js';
 import { i18n } from '../../core/i18n.js';
 
 // Generation & Parsing
@@ -164,6 +164,74 @@ function maybeRehydrateUserStatsFromDisplayData() {
     }
 }
 
+function getCurrentSwipeText(message) {
+    const swipeId = Number(message?.swipe_id ?? 0);
+
+    if (Array.isArray(message?.swipes) && typeof message.swipes[swipeId] === 'string' && message.swipes[swipeId].trim()) {
+        return message.swipes[swipeId];
+    }
+
+    return typeof message?.mes === 'string' ? message.mes : '';
+}
+
+function repairLatestTrackerStateFromCurrentSwipeContent(chatMessages = getContext()?.chat || []) {
+    for (let i = chatMessages.length - 1; i >= 0; i--) {
+        const message = chatMessages[i];
+        if (!message || message.is_user || message.is_system) {
+            continue;
+        }
+
+        const swipeId = Number(message.swipe_id ?? 0);
+        if (getCurrentSwipeTrackerData(message)) {
+            continue;
+        }
+
+        const currentSwipeText = getCurrentSwipeText(message);
+        if (!currentSwipeText) {
+            continue;
+        }
+
+        const parsedData = parseResponse(currentSwipeText);
+        if (parsedData.userStats) {
+            parsedData.userStats = removeLocks(parsedData.userStats);
+        }
+        if (parsedData.infoBox) {
+            parsedData.infoBox = removeLocks(parsedData.infoBox);
+        }
+        if (parsedData.characterThoughts) {
+            parsedData.characterThoughts = removeLocks(parsedData.characterThoughts);
+        }
+
+        if (!parsedData.userStats && !parsedData.infoBox && !parsedData.characterThoughts) {
+            continue;
+        }
+
+        setMessageSwipeTrackerData(message, swipeId, {
+            userStats: parsedData.userStats || null,
+            infoBox: parsedData.infoBox || null,
+            characterThoughts: parsedData.characterThoughts || null
+        });
+
+        return true;
+    }
+
+    return false;
+}
+
+function restoreOrRepairLatestTrackerState() {
+    const chatMessages = getContext()?.chat || [];
+    let restored = restoreLatestTrackerStateFromChat(chatMessages);
+
+    if (!restored) {
+        const repaired = repairLatestTrackerStateFromCurrentSwipeContent(chatMessages);
+        if (repaired) {
+            restored = restoreLatestTrackerStateFromChat(chatMessages);
+        }
+    }
+
+    return restored;
+}
+
 function rerenderRpgState() {
     renderUserStats();
     renderInfoBox();
@@ -190,7 +258,7 @@ export function scheduleChatStateRehydration() {
         attempts++;
 
         loadChatData();
-        restoreLatestTrackerStateFromChat(getContext()?.chat);
+        restoreOrRepairLatestTrackerState();
         maybeRehydrateUserStatsFromDisplayData();
         rerenderRpgState();
 
@@ -229,7 +297,7 @@ export function scheduleChatStateRehydration() {
 
 export function onChatLoaded() {
     loadChatData();
-    restoreLatestTrackerStateFromChat(getContext()?.chat);
+    restoreOrRepairLatestTrackerState();
     maybeRehydrateUserStatsFromDisplayData();
     rerenderRpgState();
     scheduleChatStateRehydration();
@@ -237,7 +305,7 @@ export function onChatLoaded() {
 }
 
 function syncDisplayedTrackerStateFromChat() {
-    const restored = restoreLatestTrackerStateFromChat(getContext()?.chat);
+    const restored = restoreOrRepairLatestTrackerState();
 
     if (!restored) {
         lastGeneratedData.userStats = null;
@@ -358,11 +426,11 @@ export async function onMessageReceived(data) {
             }
 
             const currentSwipeId = lastMessage.swipe_id || 0;
-            lastMessage.extra.rpg_companion_swipes[currentSwipeId] = {
+            setMessageSwipeTrackerData(lastMessage, currentSwipeId, {
                 userStats: parsedData.userStats,
                 infoBox: parsedData.infoBox,
                 characterThoughts: parsedData.characterThoughts
-            };
+            });
 
             // console.log('[RPG Companion] Stored RPG data for swipe', currentSwipeId);
 
@@ -598,6 +666,7 @@ export function onMessageDeleted() {
     }
 
     syncDisplayedTrackerStateFromChat();
+    saveChatData();
 }
 
 /**
