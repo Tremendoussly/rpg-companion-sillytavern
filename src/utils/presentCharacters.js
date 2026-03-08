@@ -1,5 +1,5 @@
-import { this_chid, characters } from '../../../../../../../script.js';
-import { selected_group, getGroupMembers } from '../../../../../../group-chats.js';
+import { this_chid, characters } from '../../../../../../script.js';
+import { selected_group, getGroupMembers } from '../../../../../group-chats.js';
 import {
     extensionSettings,
     lastGeneratedData,
