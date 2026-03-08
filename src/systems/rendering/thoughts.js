@@ -1589,12 +1589,13 @@ function insertInlineThoughts($message, thoughtsArray) {
 
 function createInlineThoughtDropdown(thoughtData) {
     const characterName = thoughtData.name || '';
+    const characterEmoji = thoughtData.emoji || '👤';
     const thoughtText = thoughtData.thought || '';
 
     return $(`
         <details class="rpg-inline-thought" data-character="${escapeInlineThoughtHtml(characterName.toLowerCase())}">
             <summary class="rpg-inline-thought-summary">
-                <span class="rpg-inline-thought-icon">💭</span>
+                <span class="rpg-inline-thought-icon">${escapeInlineThoughtHtml(characterEmoji)}</span>
                 <span class="rpg-inline-thought-name">${escapeInlineThoughtHtml(characterName)}'s thoughts</span>
             </summary>
             <div class="rpg-inline-thought-content">
