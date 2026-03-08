@@ -128,6 +128,7 @@ export function renderAlternatePresentCharacters({ useCommittedFallback = true }
             <div class="rpg-alt-present-characters__count">${presentCharacters.length}</div>
         </div>
         <div class="rpg-alt-present-characters__scroll">
+            <div class="rpg-alt-present-characters__track">
     `;
 
     for (const character of presentCharacters) {
@@ -146,7 +147,10 @@ export function renderAlternatePresentCharacters({ useCommittedFallback = true }
         `;
     }
 
-    html += '</div>';
+    html += `
+            </div>
+        </div>
+    `;
 
     const $panel = ensureAlternatePresentCharactersPanel();
     $panel.html(html).show();

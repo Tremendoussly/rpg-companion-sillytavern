@@ -341,6 +341,7 @@ async function initUI() {
         extensionSettings.showCharacterThoughts = $(this).prop('checked');
         saveSettings();
         updateSectionVisibility();
+        renderThoughts();
     });
 
     $('#rpg-toggle-alt-present-characters').on('change', function() {

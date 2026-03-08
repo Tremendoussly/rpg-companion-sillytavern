@@ -5032,7 +5032,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 #rpg-alt-present-characters {
     margin: 0 0 10px;
-    padding: 10px 12px 12px;
+    padding: 8px 10px 8px;
     border-radius: 14px;
     border: 1px solid var(--rpg-border, rgba(255, 255, 255, 0.14));
     background:
@@ -5048,14 +5048,14 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 }
 
 .rpg-alt-present-characters__title {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.9rem;
+    font-size: 0.84rem;
     font-weight: 700;
     letter-spacing: 0.02em;
 }
@@ -5065,9 +5065,9 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-alt-present-characters__count {
-    min-width: 28px;
-    height: 28px;
-    padding: 0 8px;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 7px;
     border-radius: 999px;
     display: inline-flex;
     align-items: center;
@@ -5075,29 +5075,38 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid var(--rpg-border, rgba(255, 255, 255, 0.14));
     color: var(--rpg-text, var(--SmartThemeBodyColor, #ecf0f1));
-    font-size: 0.8rem;
+    font-size: 0.74rem;
     font-weight: 700;
 }
 
 .rpg-alt-present-characters__scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-top: 2px;
+    scrollbar-width: thin;
+    transform: scaleY(-1);
+}
+
+.rpg-alt-present-characters__track {
     display: flex;
     gap: 10px;
-    overflow-x: auto;
+    width: max-content;
+    min-width: 100%;
+    transform: scaleY(-1);
     padding-bottom: 2px;
-    scrollbar-width: thin;
 }
 
 .rpg-alt-present-character {
-    flex: 0 0 92px;
+    flex: 0 0 98px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    min-width: 92px;
+    gap: 4px;
+    min-width: 98px;
 }
 
 .rpg-alt-present-character__portrait {
     position: relative;
-    aspect-ratio: 3 / 4;
+    aspect-ratio: 11 / 15;
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.14);
@@ -5132,22 +5141,22 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-alt-present-character__name {
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-weight: 600;
-    line-height: 1.15;
+    line-height: 1.1;
     text-align: center;
 }
 
 @media (max-width: 768px) {
     #rpg-alt-present-characters {
         margin-bottom: 8px;
-        padding: 9px 10px 10px;
+        padding: 7px 9px 7px;
         border-radius: 12px;
     }
 
     .rpg-alt-present-character {
-        flex-basis: 80px;
-        min-width: 80px;
+        flex-basis: 84px;
+        min-width: 84px;
     }
 }
 
