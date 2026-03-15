@@ -11,12 +11,11 @@ import {
     extensionSettings,
     syncedExpressionPortraits,
     setSyncedExpressionPortrait,
-    getSyncedExpressionPortrait,
     removeSyncedExpressionPortrait
 } from '../../core/state.js';
 import { saveChatData } from '../../core/persistence.js';
-import { isSafeImageSrc, normalizeImageSrc, resolveImageUrl } from '../../utils/imageUrls.js';
-import { renderAlternatePresentCharacters } from '../ui/alternatePresentCharacters.js';
+import { normalizeImageSrc } from '../../utils/imageUrls.js';
+import { isUsableExpressionSrc } from '../../utils/expressionPortraits.js';
 
 let expressionContainerObserver = null;
 let expressionImageObserver = null;
@@ -28,51 +27,24 @@ let lastCapturedExpressionSrc = null;
 let scheduledCaptureTimers = [];
 let hiddenExpressionStyleElement = null;
 let pendingCaptureRequestId = 0;
+let refreshExpressionConsumersHandler = null;
 
 function normalizeName(name) {
     return String(name || '').trim().toLowerCase();
 }
 
+function namesMatch(a, b) {
+    const left = normalizeName(a);
+    const right = normalizeName(b);
+    if (!left || !right) {
+        return false;
+    }
+
+    return left === right || left.startsWith(right + ' ') || right.startsWith(left + ' ');
+}
+
 function normalizeExpressionSrc(src) {
     return normalizeImageSrc(src);
-}
-
-function resolveExpressionUrl(src) {
-    return resolveImageUrl(src);
-}
-
-function isDocumentLikeUrl(src) {
-    const candidate = resolveExpressionUrl(src);
-    if (!candidate) {
-        return false;
-    }
-
-    const current = new URL(window.location.href);
-    return candidate.origin === current.origin
-        && candidate.pathname === current.pathname
-        && candidate.search === current.search;
-}
-
-function isUsableExpressionSrc(src) {
-    const normalized = normalizeExpressionSrc(src);
-    if (!normalized) {
-        return false;
-    }
-
-    const lower = normalized.toLowerCase();
-    if (lower.includes('/img/default-expressions/') || lower.includes('/default-expressions/')) {
-        return false;
-    }
-
-    if (isDocumentLikeUrl(normalized)) {
-        return false;
-    }
-
-    if (!isSafeImageSrc(normalized)) {
-        return false;
-    }
-
-    return true;
 }
 
 function purgeInvalidSyncedExpressionPortraits() {
@@ -92,34 +64,8 @@ function purgeInvalidSyncedExpressionPortraits() {
     return changed;
 }
 
-function namesMatch(a, b) {
-    const left = normalizeName(a);
-    const right = normalizeName(b);
-    if (!left || !right) {
-        return false;
-    }
-
-    return left === right || left.startsWith(right + ' ') || right.startsWith(left + ' ');
-}
-
-export function getExpressionPortraitForCharacter(characterName) {
-    const target = normalizeName(characterName);
-    if (!target) {
-        return null;
-    }
-
-    const exact = getSyncedExpressionPortrait(target);
-    if (isUsableExpressionSrc(exact)) {
-        return exact;
-    }
-
-    for (const [storedName, src] of Object.entries(syncedExpressionPortraits)) {
-        if (namesMatch(storedName, target) && isUsableExpressionSrc(src)) {
-            return src;
-        }
-    }
-
-    return null;
+export function setExpressionSyncRefreshHandler(handler) {
+    refreshExpressionConsumersHandler = typeof handler === 'function' ? handler : null;
 }
 
 function getLatestAssistantSpeakerName() {
@@ -325,7 +271,7 @@ function findExpressionImageElement(speakerName = null) {
 }
 
 function refreshExpressionConsumers() {
-    renderAlternatePresentCharacters({ useCommittedFallback: true });
+    refreshExpressionConsumersHandler?.();
 }
 
 function getHideStyleCss() {

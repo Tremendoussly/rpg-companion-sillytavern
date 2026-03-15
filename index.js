@@ -134,7 +134,10 @@ import {
     removeDesktopTabs,
     updateStripWidgets
 } from './src/systems/ui/desktop.js';
-import { removeAlternatePresentCharactersPanel } from './src/systems/ui/alternatePresentCharacters.js';
+import {
+    removeAlternatePresentCharactersPanel,
+    renderAlternatePresentCharacters
+} from './src/systems/ui/alternatePresentCharacters.js';
 import {
     initExpressionSync,
     queueExpressionCaptureForSpeaker,
@@ -142,7 +145,8 @@ import {
     onAlternatePresentCharactersVisibilityChanged,
     onHideDefaultExpressionDisplaySettingChanged,
     clearExpressionSyncCache,
-    onExpressionSyncChatChanged
+    onExpressionSyncChatChanged,
+    setExpressionSyncRefreshHandler
 } from './src/systems/integration/expressionSync.js';
 
 // Feature modules
@@ -172,6 +176,10 @@ import {
 
 // Old state variable declarations removed - now imported from core modules
 // (extensionSettings, lastGeneratedData, committedTrackerData, etc. are now in src/core/state.js)
+
+setExpressionSyncRefreshHandler(() => {
+    renderAlternatePresentCharacters({ useCommittedFallback: true });
+});
 
 // Utility functions removed - now imported from src/utils/avatars.js
 // (getSafeThumbnailUrl)

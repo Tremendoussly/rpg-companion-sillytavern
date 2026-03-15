@@ -226,7 +226,7 @@ export function resolvePresentCharacterPortrait(name) {
         }
     }
 
-    if (this_chid !== undefined && characters[this_chid]?.name && namesMatch(characters[this_chid].name, name)) {
+    if (this_chid !== undefined && characters?.[this_chid]?.name && namesMatch(characters[this_chid].name, name)) {
         const thumbnailUrl = getSafeThumbnailUrl('avatar', characters[this_chid].avatar);
         if (thumbnailUrl) {
             return thumbnailUrl;

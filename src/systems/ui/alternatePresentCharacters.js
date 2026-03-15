@@ -1,7 +1,7 @@
 import { extensionSettings } from '../../core/state.js';
 import { i18n } from '../../core/i18n.js';
+import { getExpressionPortraitForCharacter } from '../../utils/expressionPortraits.js';
 import { getSafeImageSrc } from '../../utils/imageUrls.js';
-import { getExpressionPortraitForCharacter } from '../integration/expressionSync.js';
 import {
     getPresentCharactersTrackerData,
     parsePresentCharacters,
